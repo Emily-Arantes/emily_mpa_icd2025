@@ -1,0 +1,788 @@
+---
+title: "Revisão de Teoria de Finanças"
+subtitle: "Conceitos fundamentais para a prova"
+author: "Seu Nome"
+date: today
+date-format: long
+lang: pt-BR
+format: 
+  html:
+    embed-resources: true
+    theme: cosmo
+    toc: true
+    number-sections: true
+    code-fold: true
+execute:
+  echo: true
+  warning: false
+  message: false
+bibliography: referencias.bib
+csl: associacao-brasileira-de-normas-tecnicas-ipea.csl
+editor: source
+---
+
+
+# Introdução {#sec-introducao}
+
+Este documento contém uma revisão dos principais conceitos de Teoria 
+de Finanças que serão abordados na prova. Utilizamos o sistema 
+**Quarto** para criar este documento, demonstrando como esta ferramenta 
+pode ser útil para:
+
+- Escrever conteúdo acadêmico com formatação profissional
+- Incorporar equações matemáticas complexas
+- Incluir visualizações e análises geradas por código R
+- Criar documentos reproduzíveis para pesquisa
+
+Vamos revisar os seguintes tópicos:
+
+1. Covariância e correlação entre ativos
+2. Modelo de precificação de ativos (CAPM)
+3. Teoria de otimização de carteiras (Markowitz)
+4. Fronteira eficiente
+
+
+
+
+# Conceitos Estatísticos em Finanças {#sec-estatistica}
+
+## Covariância e Correlação {#sec-covariancia}
+
+A **covariância** mede como dois ativos se movimentam em relação um 
+ao outro. É definida matematicamente como:
+
+$$
+\text{Cov}(R_A, R_B) = E[(R_A - E[R_A])(R_B - E[R_B])]
+$$
+
+A **correlação** é uma versão normalizada da covariância, variando 
+entre -1 e +1:
+
+$$
+\rho_{A,B} = \frac{\text{Cov}(R_A, R_B)}{\sigma_A \sigma_B}
+$$
+
+Onde:
+
+- $\rho_{A,B}$ é o coeficiente de correlação entre os ativos A e B
+- $\sigma_A$ e $\sigma_B$ são os desvios-padrão dos retornos dos ativos A e B
+
+```{r}
+#| label: fig-correlacao
+#| fig-cap: "Exemplo de diferentes níveis de correlação entre ativos"
+
+# Carregar pacotes necessários
+library(tidyverse) # Conjunto de pacotes para manipulação e visualização de dados
+library(ggplot2) # Pacote específico para gráficos
+
+# PASSO 1: Criar dados simulados para demonstrar diferentes tipos de correlação
+set.seed(123) # Define uma "semente" para garantir que os números aleatórios sejam os mesmos sempre
+n <- 100 # Número de observações para cada exemplo
+
+# PASSO 2: Criar dados com correlação positiva forte (próxima de +1)
+# Geramos x_pos aleatoriamente, e depois criamos y_pos relacionado a x_pos
+x_pos <- rnorm(n) # Gera n valores aleatórios de uma distribuição normal
+# Multiplicamos x_pos por 0.8 e adicionamos um pouco de ruído para criar uma relação linear positiva
+y_pos <- x_pos * 0.8 + rnorm(n, sd = 0.5)
+cor_pos <- round(cor(x_pos, y_pos), 2) # Calcula e arredonda a correlação real
+
+# PASSO 3: Criar dados com correlação negativa forte (próxima de -1)
+# Mesmo processo, mas com sinal negativo para criar relação inversa
+x_neg <- rnorm(n)
+y_neg <- x_neg * -0.8 + rnorm(n, sd = 0.5) # Note o sinal negativo aqui
+cor_neg <- round(cor(x_neg, y_neg), 2)
+
+# PASSO 4: Criar dados sem correlação (próximo de 0)
+# Este processo é mais complexo para garantir correlação zero
+x_zero <- rnorm(n)
+y_aux <- rnorm(n)
+
+# Usamos um processo matemático chamado ortogonalização para garantir correlação zero
+# A projeção de y_aux em x_zero representa a parte de y_aux explicada por x_zero
+proj <- sum(y_aux * x_zero) / sum(x_zero^2) * x_zero
+
+# Subtraindo a projeção, obtemos um vetor ortogonal (perpendicular) a x_zero
+y_zero <- y_aux - proj # Isto garante correlação zero por construção matemática
+cor_zero <- round(cor(x_zero, y_zero), 4)
+
+# Normalizamos para manter a variabilidade semelhante aos outros exemplos
+y_zero <- y_zero * sd(y_aux) / sd(y_zero)
+cor_zero <- round(cor(x_zero, y_zero), 4)
+
+# PASSO 5: Organizar os dados para visualização
+# Criamos três data frames separados, um para cada tipo de correlação
+data_pos <- data.frame(
+  x = x_pos,
+  y = y_pos,
+  tipo = paste0("Correlação Positiva (", cor_pos, ")")
+)
+
+data_neg <- data.frame(
+  x = x_neg,
+  y = y_neg,
+  tipo = paste0("Correlação Negativa (", cor_neg, ")")
+)
+
+data_zero <- data.frame(
+  x = x_zero,
+  y = y_zero,
+  tipo = paste0("Correlação Zero (", cor_zero, ")")
+)
+
+# Combinar todos os data frames em um único
+all_data <- rbind(data_pos, data_neg, data_zero)
+
+# PASSO 6: Criar visualização
+# Usamos ggplot2 para criar um gráfico de dispersão para cada tipo de correlação
+ggplot(all_data, aes(x = x, y = y)) +
+  geom_point(alpha = 0.7) + # Pontos semi-transparentes
+  geom_smooth(method = "lm", se = FALSE, color = "red") + # Linha de tendência sem intervalo de confiança
+  facet_wrap(~tipo) + # Divide em 3 painéis, um para cada tipo
+  theme_minimal() + # Tema minimalista para o gráfico
+  labs(
+    title = "Diferentes tipos de correlação entre ativos",
+    x = "Retornos do Ativo A",
+    y = "Retornos do Ativo B"
+  )
+```
+
+A @fig-correlacao mostra três cenários distintos de correlação entre 
+ativos. Em finanças, entender estas relações é fundamental para a 
+diversificação eficiente de carteiras.
+
+
+
+## Importância para Diversificação
+
+A correlação entre ativos determina o grau de diversificação que pode 
+ser alcançado em uma carteira:
+
+- Correlação positiva: menor benefício de diversificação
+- Correlação próxima de zero: maior benefício de diversificação
+- Correlação negativa: benefício máximo de diversificação
+
+# Modelo de Precificação de Ativos (CAPM) {#sec-capm}
+
+O modelo CAPM (*Capital Asset Pricing Model*), desenvolvido por Sharpe, 
+Lintner e Mossin, estabelece uma relação linear entre o retorno esperado 
+de um ativo e seu risco sistemático, medido pelo beta [@sharpe1964].
+
+
+
+## Equação Fundamental do CAPM
+
+$$E(R_i) = R_f + \beta_i [E(R_m) - R_f]$$
+
+Sendo:
+
+- $E(R_i)$ = retorno esperado do ativo $i$
+- $R_f$ = taxa livre de risco
+- $\beta_i$ = beta do ativo $i$ (medida de risco sistemático)
+- $E(R_m)$ = retorno esperado do mercado
+- $[E(R_m) - R_f]$ = prêmio de risco do mercado
+
+
+
+## Cálculo do Beta
+
+O beta de um ativo é calculado pela seguinte fórmula:
+
+$$
+\beta_i = \frac{\text{Cov}(R_i, R_m)}{\text{Var}(R_m)}
+$$
+
+
+
+## Interpretação do Beta
+
+O valor do beta de um ativo tem uma interpretação direta e importante:
+
+- $\beta = 1$: O ativo tende a se mover exatamente como o mercado. 
+Um aumento de 1% no mercado implica, em média, um aumento de 1% 
+no ativo.
+
+- $\beta > 1$: O ativo é mais volátil que o mercado (chamado de "agressivo"). 
+Um β = 1.5 significa que o ativo tende a subir ou cair 1,5% quando o 
+mercado sobe ou cai 1%.
+
+- $\beta < 1$: O ativo é menos volátil que o mercado (chamado de "defensivo"). 
+Um β = 0.5 indica que o ativo tende a variar apenas 0,5% quando o mercado 
+varia 1%.
+
+- $\beta \approx 1$: O ativo tem pouca ou nenhuma relação com o movimento 
+do mercado.
+
+- $\beta < 0$: O ativo tende a se mover na direção oposta ao mercado. 
+Raro, mas pode ocorrer com certos ativos ou estratégias.
+
+O beta também pode ser interpretado como a sensibilidade de um ativo às 
+condições econômicas que afetam o mercado como um todo. Setores como 
+tecnologia e consumo discricionário tendem a ter betas mais altos, enquanto 
+setores como utilities e bens de consumo básico tendem a ter betas 
+mais baixos.
+
+
+
+## Limitações do Beta como Medida de Risco
+
+É importante entender que o beta:
+
+1. É calculado com base em dados históricos e pode não prever 
+adequadamente comportamentos futuros.
+
+2. Assume uma relação estável entre o ativo e o mercado ao longo do tempo.
+
+3. Pode variar significativamente dependendo do período de amostragem e da 
+frequência dos dados.
+
+4. Não captura riscos específicos do ativo que não estão correlacionados 
+com o mercado.
+
+```{r}
+#| label: fig-securities-market-line
+#| fig-cap: "Linha de Mercado de Títulos (SML) do modelo CAPM"
+
+# PASSO 1: Definir os parâmetros para o gráfico SML
+betas <- seq(0, 2, by = 0.01) # Sequência de betas de 0 a 2
+risk_free <- 0.03 # Taxa livre de risco (3%)
+market_premium <- 0.05 # Prêmio de risco do mercado (5%)
+
+# PASSO 2: Calcular retornos esperados para cada beta usando a equação do CAPM
+# E(Ri) = Rf + βi × (E(Rm) - Rf)
+expected_returns <- risk_free + betas * market_premium
+
+# PASSO 3: Criar dataframe para o gráfico
+sml_data <- data.frame(
+  Beta = betas,
+  Retorno = expected_returns
+)
+
+# PASSO 4: Adicionar alguns pontos específicos para ilustrar ativos individuais
+points <- data.frame(
+  Beta = c(0.8, 1.0, 1.5), # Três betas diferentes (defensivo, neutro, agressivo)
+  # Calculamos os retornos esperados para cada beta
+  Retorno = c(0.03 + 0.8 * 0.05, 0.03 + 1.0 * 0.05, 0.03 + 1.5 * 0.05),
+  Ativo = c("Ativo A", "Ativo B", "Ativo C")
+)
+
+# PASSO 5: Criar o gráfico da SML
+ggplot() +
+  # Linha SML principal
+  geom_line(data = sml_data, aes(x = Beta, y = Retorno), color = "blue") +
+
+  # Adicionar pontos para ativos específicos
+  geom_point(data = points, aes(x = Beta, y = Retorno), color = "red", size = 3) +
+  geom_text(
+    data = points, aes(x = Beta, y = Retorno, label = Ativo),
+    hjust = -0.2, vjust = 1.5
+  ) +
+
+  # Marcar a taxa livre de risco (β = 0)
+  geom_point(aes(x = 0, y = risk_free), color = "green", size = 3) +
+  geom_text(aes(x = 0, y = risk_free, label = "Rf"), hjust = -0.3) +
+
+  # Marcar o retorno do mercado (β = 1)
+  geom_point(aes(x = 1, y = risk_free + market_premium), color = "purple", size = 3) +
+  geom_text(aes(x = 1, y = risk_free + market_premium, label = "Mercado"), hjust = -0.3) +
+
+  # Personalizar o gráfico
+  theme_minimal() +
+  labs(
+    title = "Linha de Mercado de Títulos (SML)",
+    x = "Beta (Risco Sistemático)",
+    y = "Retorno Esperado"
+  )
+```
+
+Na @fig-securities-market-line, podemos observar a Linha de Mercado de Títulos (SML) do modelo CAPM, que representa graficamente a relação entre risco sistemático (beta) e retorno esperado.
+
+
+
+
+# Teoria de Otimização de Carteiras de Markowitz {#sec-markowitz}
+
+Harry Markowitz (1952) desenvolveu a Teoria Moderna de Carteiras, que 
+demonstra como investidores podem otimizar seus retornos para um 
+dado nível de risco [@markowitz1952].
+
+
+
+## Princípios Fundamentais
+
+1. Os investidores são avessos ao risco.
+2. O risco de uma carteira não é a média ponderada dos riscos individuais.
+3. A diversificação pode reduzir o risco sem necessariamente reduzir o retorno.
+
+
+
+## Fórmulas para Carteiras com Dois Ativos
+
+Para uma carteira com dois ativos (A e B), temos:
+
+**Retorno esperado da carteira:**
+
+$$E(R_p) = w_A E(R_A) + w_B E(R_B)$$
+
+**Variância da carteira:**
+
+$$
+\sigma_p^2 = w_A^2 \sigma_A^2 + w_B^2 \sigma_B^2 + 
+             2 w_A w_B \sigma_A \sigma_B \rho_{A,B}
+$$
+
+Onde:
+
+- $w_A$ e $w_B$ são os pesos dos ativos A e B na carteira
+- $\sigma_A$ e $\sigma_B$ são os desvios-padrão dos ativos A e B
+- $\rho_{A,B}$ é a correlação entre os ativos A e B
+
+
+
+## Fronteira Eficiente {#sec-fronteira}
+
+A fronteira eficiente é o conjunto de carteiras que oferecem o maior 
+retorno esperado para um dado nível de risco, ou o menor risco para um 
+dado nível de retorno.
+
+```{r}
+#| label: fig-fronteira-eficiente
+#| fig-cap: "Fronteira Eficiente de Markowitz - Abordagem Analítica para Dois Ativos"
+
+# PASSO 1: Definimos os parâmetros dos dois ativos
+mu_1 <- 0.10 # Retorno esperado do ativo 1 (10% ao ano, por exemplo)
+sigma_1 <- 0.20 # Risco (desvio padrão) do ativo 1 (20% ao ano)
+mu_2 <- 0.15 # Retorno esperado do ativo 2 (15% ao ano)
+sigma_2 <- 0.30 # Risco (desvio padrão) do ativo 2 (30% ao ano)
+rho <- 0.3 # Correlação entre os ativos (30%)
+
+# PASSO 2: Criar pesos para todas as combinações possíveis entre os dois ativos
+# Variamos o peso do ativo 1 de 0% a 100% em incrementos de 1%
+weights <- seq(0, 1, by = 0.01) # 101 combinações diferentes
+
+# PASSO 3: Calcular o retorno esperado de cada combinação de carteira
+# Para dois ativos: E(Rp) = w1*E(R1) + w2*E(R2), onde w2 = 1-w1
+portfolio_return <- weights * mu_1 + (1 - weights) * mu_2
+
+# PASSO 4: Calcular o risco (variância) de cada combinação de carteira
+# Para dois ativos: Var(p) = w1²*Var1 + w2²*Var2 + 2*w1*w2*Cov(1,2)
+# Onde Cov(1,2) = rho*sigma1*sigma2
+portfolio_variance <- weights^2 * sigma_1^2 + (1 - weights)^2 * sigma_2^2 +
+  2 * weights * (1 - weights) * sigma_1 * sigma_2 * rho
+
+# Convertemos variância para desvio padrão (para usar nas mesmas unidades que os retornos)
+portfolio_sd <- sqrt(portfolio_variance)
+
+# PASSO 5: Organizar os resultados em um data frame para visualização
+portfolio_data <- data.frame(
+  Peso_Ativo1 = weights,
+  Retorno = portfolio_return,
+  Risco = portfolio_sd
+)
+
+# PASSO 6: Identificar a carteira de variância mínima
+# Esta é a carteira com o menor valor na coluna "Risco"
+min_var_idx <- which.min(portfolio_data$Risco)
+min_var_portfolio <- portfolio_data[min_var_idx, ]
+
+# PASSO 7: Criar o gráfico da fronteira eficiente
+ggplot(portfolio_data, aes(x = Risco, y = Retorno)) +
+  # Linha da fronteira
+  geom_path(size = 1.2, color = "blue") +
+
+  # Destacar a carteira de variância mínima
+  geom_point(data = min_var_portfolio, color = "red", size = 3) +
+  geom_text(
+    data = min_var_portfolio,
+    aes(label = "Carteira de Variância Mínima"),
+    hjust = -0.1, vjust = -0.8
+  ) +
+
+  # Destacar os pontos que representam 100% em cada ativo
+  geom_point(data = portfolio_data[c(1, 101), ], color = "green", size = 3) +
+  geom_text(
+    data = portfolio_data[c(1, 101), ],
+    aes(label = c("100% Ativo 1", "100% Ativo 2")),
+    hjust = c(1.1, -0.1), vjust = c(0, 0)
+  ) +
+
+  # Personalizar o visual do gráfico
+  theme_minimal() +
+  labs(
+    title = "Curva de Combinações de Carteiras com Dois Ativos",
+    subtitle = paste("Correlação:", rho),
+    x = "Risco (Desvio Padrão)",
+    y = "Retorno Esperado"
+  )
+```
+
+
+## Comparação entre Abordagens para Cálculo da Fronteira Eficiente
+
+
+Existem duas maneiras principais de calcular a fronteira eficiente:
+
+### Abordagem Analítica para Dois Ativos (vista acima)
+
+O gráfico anterior mostra a fronteira eficiente calculada de 
+forma **analítica** para dois ativos, onde:
+
+- Todas as combinações possíveis de pesos são calculadas diretamente
+- As fórmulas fechadas para retorno e risco são aplicadas a cada combinação
+- A fronteira é traçada diretamente a partir desses cálculos
+
+**Vantagens desta abordagem:**
+
+- Simples de implementar e entender
+- Computacionalmente eficiente para apenas dois ativos
+- Não requer técnicas de otimização avançadas
+
+**Limitações:**
+
+- Funciona apenas para dois ativos
+- Não é facilmente escalável para carteiras maiores
+
+
+
+### Abordagem de Otimização Formal (mostrada a seguir)
+
+No próximo exemplo, veremos uma implementação usando **otimização formal** via 
+programação quadrática, onde:
+
+- O problema é formulado matematicamente como minimização de risco para 
+cada nível de retorno
+
+- Um algoritmo de otimização encontra os pesos ótimos
+
+- A fronteira é construída ponto a ponto resolvendo múltiplos 
+problemas de otimização
+
+Esta abordagem é necessária para carteiras com três ou mais ativos, 
+como veremos a seguir.
+
+```{r}
+#| label: fig-fronteira-otimizada
+#| fig-cap: "Fronteira Eficiente de Markowitz Usando Otimização Formal"
+
+# Carregamos os pacotes necessários
+library(quadprog) # Pacote para resolver problemas de programação quadrática
+
+#----------------------------------------------------------------
+# PARTE 1: DEFINIÇÃO DO PROBLEMA DE OTIMIZAÇÃO
+#----------------------------------------------------------------
+
+# Vamos criar um exemplo com 3 ativos para demonstrar a otimização formal
+# Definimos os parâmetros dos ativos (retornos esperados e matriz de covariância)
+set.seed(123) # Para reprodutibilidade
+
+# Retornos esperados dos ativos
+mu <- c(0.08, 0.12, 0.15)
+names(mu) <- c("Ativo A", "Ativo B", "Ativo C")
+
+# Para a matriz de covariância, vamos defini-la diretamente:
+# Desvios-padrão dos ativos
+sigma <- c(0.16, 0.20, 0.28)
+# Matriz de correlações (simétrica, diagonal = 1)
+corr_matrix <- matrix(c(
+  1.00, 0.30, 0.10,
+  0.30, 1.00, 0.20,
+  0.10, 0.20, 1.00
+), nrow = 3, byrow = TRUE)
+
+# Construção da matriz de covariância a partir das correlações e desvios-padrão
+# Fórmula: Cov(i,j) = Corr(i,j) * sigma_i * sigma_j
+cov_matrix <- matrix(0, 3, 3)
+for (i in 1:3) {
+  for (j in 1:3) {
+    cov_matrix[i, j] <- corr_matrix[i, j] * sigma[i] * sigma[j]
+  }
+}
+
+# Exibindo os dados
+cat("Retornos esperados:\n")
+print(mu)
+cat("\nMatriz de covariâncias:\n")
+print(round(cov_matrix, 4))
+
+#----------------------------------------------------------------
+# PARTE 2: FUNÇÃO DE OTIMIZAÇÃO DA CARTEIRA
+#----------------------------------------------------------------
+
+#' Calcula a carteira de variância mínima para um dado retorno alvo
+#' @param target_return Retorno esperado alvo
+#' @param mu Vetor de retornos esperados dos ativos
+#' @param cov_matrix Matriz de covariâncias dos ativos
+#' @return Lista com pesos ótimos, retorno esperado e risco da carteira
+optimize_portfolio <- function(target_return, mu, cov_matrix) {
+  # Número de ativos
+  n_assets <- length(mu)
+
+  # FORMULAÇÃO DO PROBLEMA DE PROGRAMAÇÃO QUADRÁTICA
+  # Problema: Minimizar w'Σw sujeito a:
+  # 1. w'μ = target_return (restrição de retorno alvo)
+  # 2. sum(w) = 1 (restrição de orçamento - pesos somam 1)
+
+  # Termo quadrático (matriz D na função solve.QP)
+  Dmat <- 2 * cov_matrix # O 2 é necessário pela formulação do solve.QP
+
+  # Termo linear é zero neste caso, pois estamos minimizando w'Σw
+  dvec <- rep(0, n_assets)
+
+  # Matriz de restrições (A_eq na formulação padrão)
+  # Cada linha representa uma restrição linear
+  # 1ª linha: w'μ = target_return (restrição de retorno)
+  # 2ª linha: sum(w) = 1 (restrição de orçamento)
+  Amat <- cbind(mu, rep(1, n_assets))
+
+  # Lado direito das restrições
+  bvec <- c(target_return, 1)
+
+  # O solve.QP requer que as restrições sejam na forma A'w >= b
+  # Mas queremos A'w = b, então adicionamos também -A'w >= -b
+  Amat <- cbind(Amat, -Amat)
+  bvec <- c(bvec, -bvec)
+
+  # Resolver o problema de otimização quadrática
+  # w é a solução que minimiza w'Σw sujeito às restrições
+  result <- try(solve.QP(Dmat, dvec, t(Amat), bvec, meq = 2), silent = TRUE)
+
+  if (inherits(result, "try-error")) {
+    return(NULL) # Retorna NULL se a otimização falhar
+  }
+
+  # Extrair os pesos ótimos
+  weights <- result$solution
+  names(weights) <- names(mu)
+
+  # Calcular o risco (desvio padrão) da carteira
+  risk <- sqrt(t(weights) %*% cov_matrix %*% weights)[1, 1]
+
+  # Verificar se o retorno está correto (pode haver diferenças numéricas pequenas)
+  actual_return <- sum(weights * mu)
+
+  return(list(
+    weights = weights,
+    return = actual_return,
+    risk = risk
+  ))
+}
+
+#----------------------------------------------------------------
+# PARTE 3: COMPUTAR A FRONTEIRA EFICIENTE
+#----------------------------------------------------------------
+
+# Encontrar a carteira de variância mínima (MVP)
+# Formulamos como um problema de otimização irrestrita (sem restrição de retorno)
+# Para isso, usamos gradientes da variância = 0 e a restrição de que os pesos somam 1
+# A fórmula fechada para os pesos do MVP é: w = (Σ^(-1) * 1) / (1' * Σ^(-1) * 1)
+
+# Vetor de uns
+ones <- rep(1, length(mu))
+
+# Cálculo analítico dos pesos da carteira de variância mínima
+inv_cov <- solve(cov_matrix)
+mvp_weights <- (inv_cov %*% ones) / (t(ones) %*% inv_cov %*% ones)[1, 1]
+names(mvp_weights) <- names(mu)
+mvp_return <- sum(mvp_weights * mu)
+mvp_risk <- sqrt(t(mvp_weights) %*% cov_matrix %*% mvp_weights)[1, 1]
+
+cat("\nCarteira de Variância Mínima:\n")
+cat("Pesos: ", round(mvp_weights, 4), "\n")
+cat("Retorno: ", round(mvp_return, 4), "\n")
+cat("Risco: ", round(mvp_risk, 4), "\n")
+
+# Gerar pontos na fronteira eficiente
+# Definimos uma sequência de retornos alvo acima do retorno da MVP
+# e calculamos a carteira ótima para cada retorno alvo
+max_return <- max(mu)
+target_returns <- seq(mvp_return, max_return, length.out = 50)
+
+# Data frame para armazenar os resultados
+frontier_points <- data.frame(
+  return = numeric(length(target_returns)),
+  risk = numeric(length(target_returns))
+)
+
+# Para cada retorno alvo, calculamos a carteira ótima
+for (i in seq_along(target_returns)) {
+  target <- target_returns[i]
+  opt_portfolio <- optimize_portfolio(target, mu, cov_matrix)
+
+  if (!is.null(opt_portfolio)) {
+    frontier_points$return[i] <- opt_portfolio$return
+    frontier_points$risk[i] <- opt_portfolio$risk
+  }
+}
+
+# Remover pontos inválidos (se houver)
+frontier_points <- frontier_points[!is.na(frontier_points$risk), ]
+
+#----------------------------------------------------------------
+# PARTE 4: VISUALIZAÇÃO DA FRONTEIRA EFICIENTE
+#----------------------------------------------------------------
+
+# Calculamos também as carteiras de ativo único para referência
+single_asset_portfolios <- data.frame(
+  asset = names(mu),
+  return = mu,
+  risk = sigma
+)
+
+# Criar o gráfico da fronteira eficiente
+ggplot() +
+  # Fronteira eficiente
+  geom_path(
+    data = frontier_points,
+    aes(x = risk, y = return),
+    color = "blue", size = 1.2
+  ) +
+  # Carteira de variância mínima
+  geom_point(aes(x = mvp_risk, y = mvp_return),
+    color = "red", size = 4
+  ) +
+  geom_text(
+    aes(
+      x = mvp_risk, y = mvp_return,
+      label = "Carteira de Variância Mínima"
+    ),
+    hjust = -0.1, vjust = -0.8
+  ) +
+  # Ativos individuais
+  geom_point(
+    data = single_asset_portfolios,
+    aes(x = risk, y = return),
+    color = "green", size = 3
+  ) +
+  geom_text(
+    data = single_asset_portfolios,
+    aes(x = risk, y = return, label = asset),
+    hjust = -0.1, vjust = 0
+  ) +
+  # Personalização do gráfico
+  theme_minimal() +
+  labs(
+    title = "Fronteira Eficiente de Markowitz",
+    subtitle = "Calculada por otimização quadrática formal",
+    x = "Risco (Desvio Padrão)",
+    y = "Retorno Esperado",
+    caption = "Otimização implementada com o pacote quadprog"
+  )
+
+#----------------------------------------------------------------
+# PARTE 5: EXPLICAÇÃO CONCEITUAL
+#----------------------------------------------------------------
+
+cat("\nEXPLICAÇÃO DO PROBLEMA DE OTIMIZAÇÃO DE MARKOWITZ:\n")
+cat("1. Buscamos minimizar o risco (variância) para cada nível de retorno esperado\n")
+cat("2. Formula-se como um problema de programação quadrática\n")
+cat("3. A fronteira eficiente contém todas as carteiras ótimas\n")
+cat("4. A carteira de variância mínima é um ponto especial da fronteira\n")
+cat("5. Acima da carteira de variância mínima, maior retorno implica em maior risco\n")
+```
+
+
+
+## Carteira de Variância Mínima
+
+A carteira de variância mínima, destacada em vermelho nos gráficos de 
+fronteira eficiente, representa a carteira com o menor risco possível 
+dada a combinação dos ativos disponíveis.
+
+
+## Relação com o CAPM
+
+A fronteira eficiente é expandida com a introdução de um ativo livre 
+de risco, criando a Linha de Mercado de Capitais (CML). Segundo o CAPM, 
+todos os investidores manterão uma combinação da carteira de mercado e 
+o ativo livre de risco.
+
+
+
+
+# Aplicações Práticas {#sec-aplicacoes}
+
+As teorias discutidas neste documento têm aplicações práticas 
+importantes:
+
+1. **Gestão de investimentos**: Aplicação direta na construção de carteiras 
+otimizadas.
+
+2. **Avaliação de desempenho**: Benchmarking baseado em risco.
+
+3. **Precificação de ativos**: Estimativa do retorno exigido em investimentos.
+
+Como vimos na seção de @sec-capm, o modelo CAPM oferece uma estrutura 
+para determinar o retorno esperado de um ativo baseado em seu risco 
+sistemático.
+
+
+
+
+# Conclusão
+
+Neste documento, revisamos conceitos fundamentais da Teoria de Finanças 
+que serão abordados na prova:
+
+- Covariância e correlação entre ativos (ver @sec-covariancia)
+- Modelo CAPM e precificação de ativos (ver @sec-capm)
+- Teoria de Markowitz e otimização de carteiras (ver @sec-markowitz)
+- Fronteira eficiente e gestão de risco (ver @sec-fronteira)
+
+Estes conceitos formam a base do entendimento moderno sobre investimentos 
+e gestão de riscos em finanças.
+
+
+# Dicas para a Prova
+
+Ao estudar estes conceitos para a prova, lembre-se de:
+
+1. **Foco nas fórmulas e suas interpretações**: Entenda o significado de 
+cada componente nas equações do CAPM e da Teoria de Markowitz.
+
+2. **Interpretação gráfica**: Saiba explicar o significado da SML e 
+da fronteira eficiente, e como os pontos nestes gráficos devem ser 
+interpretados.
+
+3. **Aplicações práticas**: Relacione os conceitos teóricos com aplicações 
+reais em gestão de investimentos.
+
+4. **Relações entre conceitos**: Entenda como o CAPM e a Teoria de 
+Markowitz se complementam na análise de investimentos.
+
+5. **Limitações dos modelos**: Esteja preparado para discutir as 
+premissas e limitações de cada modelo teórico apresentado.
+
+Boa sorte na prova!
+
+
+
+
+## Inserindo células de código
+
+A @fig-glinha exibe um gráfico de linha de uma variável aleatória com distribuição normal padronizada.
+
+```{r}
+#| echo: false
+#| label: fig-glinha
+#| fig-cap: "Gráfico de linha de uma VA com distribuição normal."
+
+# simulando uma VA com distr. normal
+retornos <- rnorm(1000)
+
+# gráfico dos retornos simulados
+plot(retornos, type = "l")
+grid()
+```
+
+Segundo @sharpe1964
+
+O modelo CAPM foi desenvolvido em dois artigos clássicos de Finanças
+[@sharpe1964;@markowitz1952].
+
+
+## Referências {#sec-referencias}
+
+::: {#refs}
+:::
+
+
+
