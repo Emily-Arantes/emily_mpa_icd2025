@@ -1,0 +1,315 @@
+---
+title: "Resolucão da Avaliação 1"
+subtitle: "Introdução à Ciência de Dados - 2025 <br> Mestrado em Administração"
+author: "Emily Arantes Duque"
+title-block-banner: "#27445C"
+format:
+  html:
+    embed-resources: true
+    page-layout: article
+    toc: true
+    toc-location: left
+lang: "pt"
+date: 2025-05-29
+date-format: long
+execute: 
+  eval: false
+  echo: true
+  warning: false
+  message: false
+crossref:
+  fig-prefix: 'Fig.'
+  tbl-prefix: 'Tab.'
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura a exibição de números
+options(digits = 3, scipen = 99)
+
+# Carrega os pacotes necessários
+library(here)       # Para utilizar caminhos relativos no projeto
+library(tidyverse)  # Metapacote que inclui reador, dplyr, tidyr...
+library(farr)       # Para usar as 3 data frames
+
+# Carrega as df do pacote farr
+
+## carrega a df aus_banks
+data("aus_banks")
+
+## carrega a df aus_bank_funds
+data("aus_bank_funds")
+
+## carrega a df aus_bank_rets
+data("aus_bank_rets")
+```
+
+
+
+## Questão 1 
+
+
+**a)** 
+
+A atual abordagem utilizada,  principalmente as planilhas eletrônicas sendo uma 
+ferramenta principal, pode ocasionar perda de informações, pois não há uma 
+manutenção dos dados brutos, os quais geralmente são utilizados e transformados 
+diretamente, não mantendo um histórico do trabalho realizado e comprometendo a
+reprodutibilidade. Assim, para garantir a eficiência operacional seria necessário 
+manter os dados brutos reservados e trabalhar apenas com os dados limpos, através
+de outras ferramentas como RStudio e Python.
+
+
+**b)** 
+
+A metodologia CRISP-DM garante que os projetos sejam realizados de forma coesa e 
+transparente, permitindo que o responsável por desenvolvê-los mantenha um banco
+de dados estruturado, permita a reprodutibilidade através de registro dos passos
+realizados e a eficiência operacional, principalmente nas análises aplicadas nas
+indústrias, que precisam descentralizar a análise de dados, mantendo os 
+envolvidos informados.
+
+
+**c)** 
+
+As ferramentas de linguagem permitem que seja registrado todo o processo 
+realizado com os dados, não permitindo que seja perdido detalhes do trabalho 
+feito com os dados, contirbuindo para que seja possível reproduzir os mesmos
+passos no futuro, garantindo a transparência das informações e auditabilidade,
+visto que é possível consultar qualquer etapa realizada desde o início do 
+tratamento dos dados.
+
+
+
+
+
+## Questão 2
+
+
+**a)**
+
+```{r}
+caminho <- here::here("data/raw/dados_franco2022.csv")
+
+dados_franco <- readr::read_csv(caminho)
+
+```
+
+
+
+```{r}
+dplyr::glimpse(dados_franco)
+```
+
+
+
+**b)** 
+
+```{r}
+library(dplyr)
+
+dados_franco_limpos <- read_csv(here("data", "raw", "dados_franco2022.csv"))
+
+# Aplicar o pipeline para renomear as colunas
+
+dados_franco <- dados_franco_limpos %>% 
+rename(
+  mes = data,
+  indice_epu = EPU,
+  indice_iem = IEM,
+  indice_fec = ICCFEC,
+  indice_fgv = ICCFGV,
+)
+
+glimpse(dados_franco_limpos)
+```
+
+
+
+
+## Questão 3
+
+
+**a)** 
+
+```{r}
+# Dados simulando relatório do BCB sobre patrimônio de referência
+patrimonio_wide <- tribble(
+  ~instituicao,              ~`2019`, ~`2020`, ~`2021`, ~`2022`, ~`2023`,
+  "Itaú Unibanco",           186.4,    203.7,   218.9,   234.5,   251.2,
+  "Banco do Brasil",         142.8,    156.3,   169.7,   182.1,   198.4,
+  "Bradesco",                158.7,    171.2,   184.6,   197.8,   213.3,
+  "Santander Brasil",         89.3,     96.7,   104.2,   112.8,   121.5,
+  "Caixa Econômica Federal", 118.6,    127.9,   138.4,   149.7,   162.3,
+  "BTG Pactual",              28.4,     32.1,    36.8,    42.3,    48.7
+)
+
+# Visualiza os dados em formato amplo
+patrimonio_wide
+```
+
+
+```{r}
+# Pipeline de transformação de formato amplo para formato longo
+patrimonio_longo <- patrimonio_wide %>%
+  pivot_longer(
+    cols = `2019`:`2023`,
+    names_to = "ano",
+    values_to = "patrimonio_referencia"
+  ) %>%
+  mutate(ano = as.numeric(ano)) %>%
+  arrange(instituicao, ano)
+
+# Exibe o resultado completo da transformação
+patrimonio_longo
+```
+
+
+
+**b.1):**
+
+```{r}
+# Estrutura dos dados
+
+patrimonio_longo
+```
+
+
+**b.2):** 
+
+A data frame possui 30 observações após a transformação.
+
+
+**b.3):**
+
+A data frame possui 3 variáveis após a transformação.
+
+
+
+
+
+
+## Questão 4
+
+
+**a)** 
+
+```{r}
+# Pipeline para combinar aus_banks e aus_bank_funds
+dados_combinados <- aus_bank_funds %>%
+  # join para manter todas as observações de aus_bank_funds
+  left_join(aus_banks, by = "gvkey") %>%
+  # Remove observações com valores ausentes
+  drop_na() %>%
+  # Seleciona apenas as variáveis solicitadas
+  select(co_name, ticker, datadate, at, ceq) %>%
+  # Ordena por nome do banco e depois por data
+  arrange(co_name, datadate)
+
+# Exibe as primeiras 10 linhas
+head(dados_combinados, 10)
+```
+
+
+
+
+**b)** 
+
+```{r}
+# Pipeline para calcular equity ratio e criar ranking
+ranking_equity <- dados_combinados %>%
+  # Calcula o equity ratio (proporção patrimônio líquido / ativo total)
+  mutate(equity_ratio = ceq / at) %>%
+  # Agrupa os dados por banco
+  group_by(co_name)%>%
+  # Calcula o equity ratio médio de cada banco 
+  summarise(equity_ratio_medio = mean(equity_ratio)) %>%
+  # Ordena do maior para o menor equity ratio médio
+  arrange(desc(equity_ratio_medio))
+
+# Exibe a tabela completa do ranking
+ranking_equity
+```
+
+```{r}
+
+head(ranking_equity, 1)
+
+```
+
+
+
+
+## Questão 5
+
+
+**a)** 
+
+```{r}
+# Pipeline para integrar as três tabelas
+dados_integrados <- aus_bank_funds %>%
+  # Primeiro join: adiciona informações dos bancos
+  inner_join(aus_banks, by = "gvkey") %>%
+  # Segundo join: adiciona dados de retornos das ações
+  inner_join(aus_bank_rets, by = c("gvkey", "datadate")) %>%
+  # Remove possíveis valores ausentes para garantir dados completos
+  drop_na()
+
+# Verifica a estrutura dos dados integrados
+dplyr::glimpse(dados_integrados)
+```
+
+
+
+
+**b)** 
+
+```{r}
+# Calcula ativo total médio por banco
+ativo_medio_bancos <- dados_combinados %>%
+  group_by(co_name) %>%
+  summarise(ativo_medio = mean(at, na.rm = TRUE)) %>%
+  arrange(desc(ativo_medio))
+
+# Exibe os resultados
+ativo_medio_bancos
+```
+
+
+
+
+**c)** 
+
+```{r}
+# Pipeline completo integrando dados de ativo e retorno
+analise_categorias <- dados_integrados %>%
+  # Agrupa por banco
+  group_by(co_name) %>%
+  # Calcula ativo médio e retorno médio por banco
+  summarise(
+    ativo_medio = mean(at, na.rm = TRUE),
+    retorno_medio = mean(ret, na.rm = TRUE)
+  ) %>%
+  # Cria categorias de tamanho usando case_when
+  mutate(
+    categoria_tamanho = case_when(
+      ativo_medio < 50000 ~ "Pequeno",
+      ativo_medio >= 50000 & ativo_medio <= 200000 ~ "Médio",
+      ativo_medio > 200000 ~ "Grande"
+    )
+  )
+
+# Exibe o resultado
+analise_categorias
+
+```
+
+
+
+
+
+
+

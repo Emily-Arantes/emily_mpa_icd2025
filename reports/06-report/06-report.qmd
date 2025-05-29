@@ -1,0 +1,841 @@
+---
+title: "Introdução à Ciência de Dados"
+subtitle: "Aula 7"
+lang: pt-BR
+author: "Seu Nome"
+format: 
+  html:
+    theme: cosmo
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+<style>
+body {
+  font-size: 13pt;
+  text-align: justify;
+}
+</style>
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+```
+
+
+# Pacote dplyr: Tipos Básicos de *joins* 
+
+
+## Joins na Fase 3 (Preparação dos Dados) do CRISP-DM
+
+- Joins são operações fundamentais na **Fase 3 (Preparação dos Dados)** 
+  de CRISP-DM, permitindo:
+
+- **Integrar dados fragmentados** que estão distribuídos em múltiplas tabelas
+  relacionadas entre si
+
+- **Consolidar informações** de diferentes fontes ou sistemas para análise
+  (vendas + produtos + clientes)
+
+- **Enriquecer dados principais** com informações contextuais adicionais
+  (ex: adicionar categoria de produto aos dados de vendas)
+
+- **Completar o ciclo de preparação** iniciado com:
+
+  - Importação de dados (`read_csv()`, `read_xlsx()`)
+  - Organização de dados (`pivot_longer()`) para análise
+  - Limpeza de dados (`rename()``, `as.___()`)
+  - Filtragem (`filter()`) e seleção (`select()`) de dados relevantes
+  - Transformação de dados (`mutate()`) para criar novas variáveis
+  - Manipulação de dados ( `group_by()`, `summarize()` e `arrange()`)
+  - **Joins**: integrando múltiplas fontes em um arquivo de dados coeso
+
+- Dados bem integrados facilitam as **Fases 4 e 5** (Modelagem e Avaliação) 
+  por fornecerem uma visão completa do problema
+
+
+
+## Joins no dplyr
+
+- **Joins** são operações que combinam duas tabelas de dados 
+
+- Em termos simples, joins são como "colar" duas tabelas lado a lado, 
+  combinando linhas que têm valores em comum, como um "código de cliente" 
+  ou "código de produto"
+
+- No pacote dplyr, temos funções específicas para cada tipo de join:
+
+  - `left_join()`: Mantém todas as linhas da tabela da esquerda
+  - `inner_join()`: Mantém apenas correspondências entre as tabelas
+  - `full_join()`: Mantém todas as linhas de ambas as tabelas
+  - `right_join()`: Mantém todas as linhas da tabela da direita
+
+- São essenciais quando precisamos combinar informações que estão separadas
+
+
+
+## Dados de Exemplo para Aula
+
+
+### Tabela produtos
+
+```{r}
+# Cria a tabela de produtos
+produtos <- tribble(
+  ~codigo_produto, ~nome_produto,      ~preco_unitario, ~categoria,
+  "P001",         "Notebook Pro",      4500,           "Eletrônicos",
+  "P002",         "Smartphone X",      2800,           "Eletrônicos",
+  "P003",         "Monitor 24pol",     1200,           "Informática",
+  "P004",         "Mouse Gamer",       250,            "Informática",
+  "P005",         "Cadeira Ergonômica", 950,           "Mobiliário"
+)
+
+# exibe a tabela
+produtos
+```
+
+
+### Tabela vendas
+
+```{r}
+# Cria a tabela de vendas
+vendas <- tribble(
+  ~id_venda, ~codigo_produto, ~id_cliente, ~data_venda,  ~quantidade,
+  1,         "P001",          "C001",      "2025-04-15", 1,
+  2,         "P002",          "C002",      "2025-04-16", 2,
+  3,         "P003",          "C001",      "2025-04-18", 2,
+  4,         "P002",          "C003",      "2025-04-20", 1,
+  5,         "P006",          "C002",      "2025-04-22", 3,
+  6,         "P004",          "C004",      "2025-04-23", 4
+)
+
+# exibe a tabela
+vendas
+```
+
+
+### Tabela Clientes
+
+```{r}
+# Crian a tabela de clientes 
+clientes <- tribble(
+  ~id_cliente, ~nome_cliente,     ~cidade,
+  "C001",      "Empresa Alpha",   "São Paulo",
+  "C002",      "Empresa Beta",    "Rio de Janeiro",
+  "C003",      "João Silva",      "Belo Horizonte",
+  "C005",      "Maria Oliveira",  "Recife"
+)
+
+# exibe a tabela
+clientes
+```
+
+
+**Observe que há dados "imperfeitos"**: 
+
+- Produto "P006" está nas vendas, mas não na tabela de produtos
+- Cliente "C004" está nas vendas, mas não na tabela de clientes
+- Cliente "C005" está na tabela de clientes, mas não tem vendas
+
+
+
+## Exemplo: Left Join em Pesquisa
+
+
+Left Join: Análise de Empresas e seus Indicadores Contábeis:
+
+```{r}
+# Tabela de empresas listadas
+empresas_listadas <- tribble(
+  ~codigo_cvm, ~empresa,            ~setor,              ~segmento_listagem,
+  "11592",     "Petrobras",         "Petróleo e Gás",    "Nível 2",
+  "19615",     "Vale",              "Mineração",         "Novo Mercado",
+  "14311",     "Itaú Unibanco",     "Financeiro",        "Nível 1",
+  "18112",     "Natura",            "Bens de Consumo",   "Novo Mercado",
+  "22691",     "Magazine Luiza",    "Varejo",            "Novo Mercado"
+)
+# visualiza o resultado
+empresas_listadas 
+```
+
+
+
+```{r}
+# Tabela de indicadores contábeis
+indicadores_contabeis <- tribble(
+  ~codigo_cvm, ~ano_fiscal, ~roa,    ~roe,    ~ebitda_margem,  ~divida_liquida,
+  "11592",     2023,         0.089,   0.235,   0.392,           315780000,
+  "19615",     2023,         0.112,   0.268,   0.468,           185230000,
+  "14311",     2023,         0.064,   0.195,   0.412,           NULL,
+  "22691",     2023,         0.052,   0.148,   0.185,           12450000
+)
+# visualiza o resultado
+indicadores_contabeis 
+```
+
+
+
+```{r}
+# Left join: todas as empresas, mesmo sem indicadores contábeis disponíveis
+analise_empresas <- empresas_listadas %>%
+  left_join(indicadores_contabeis, by = "codigo_cvm")
+
+# Visualizando o resultado
+analise_empresas
+```
+
+**Observe que**:
+
+- A empresa "Natura" (código CVM "18112") **aparece** no resultado
+
+- Como não há dados contábeis disponíveis para esta empresa, as colunas de indicadores aparecem com NA
+
+- O left_join é muito utilizado em pesquisas quando queremos manter todas as empresas da amostra, mesmo aquelas com dados incompletos - decisão metodológica comum em estudos com amostras pequenas
+
+
+
+## Exemplo: Inner Join em Pesquisa 
+
+
+Inner Join: Analisando Eventos de Rating e Performance de Bonds:
+
+```{r}
+# Tabela de títulos de dívida corporativa (bonds)
+titulos_divida <- tribble(
+  ~isin,          ~emissor,        ~valor_emissao, ~yield_to_maturity, ~vencimento,
+  "BRPETRDBS036", "Petrobras",     1000000000,     0.0785,             "2030-03-15",
+  "BRVALEDBF009", "Vale",           750000000,     0.0652,             "2032-10-08",
+  "BRITAUDB0025", "Itaú Unibanco",  500000000,     0.0723,             "2028-05-22",
+  "BRBTGPDB0017", "BTG Pactual",    650000000,     0.0798,             "2029-08-30",
+  "BRCVCODB0032", "Cielo",          350000000,     0.0815,             "2027-11-12"
+)
+# visualiza o resultado
+titulos_divida
+```
+
+
+```{r}
+# Tabela de mudanças de rating
+mudancas_rating <- tribble(
+  ~isin,          ~data_evento,  ~agencia,   ~rating_anterior, ~novo_rating, ~perspectiva,
+  "BRPETRDBS036", "2023-05-10",  "Moody's",  "Ba2",            "Ba1",        "Positiva",
+  "BRVALEDBF009", "2023-06-22",  "S&P",      "BBB",            "BBB+",       "Estável",
+  "BRVALEDBF009", "2023-08-15",  "Fitch",    "BBB",            "BBB+",       "Estável",
+  "BRITAUDB0025", "2023-07-08",  "Moody's",  "Ba1",            "Baa3",       "Estável",
+  "BRECOPDB0016", "2023-09-14",  "S&P",      "BB-",            "BB",         "Positiva"
+)
+# visualiza o resultado
+mudancas_rating
+```
+
+
+```{r}
+# Inner join: apenas títulos de dívida que tiveram mudanças de rating
+analise_rating_impacto <- titulos_divida %>%
+  inner_join(mudancas_rating, by = "isin")
+
+# Visualizando o resultado
+analise_rating_impacto
+```
+
+**Observe que**:
+
+- O título da "Cielo" (ISIN "BRCVCODB0032") **não aparece** no resultado 
+  pois não teve mudança de rating no período analisado
+
+- A mudança de rating do título "BRECOPDB0016" também **não aparece** no 
+resultado pois este título não está na nossa base de títulos monitorados
+
+- O inner_join é apropriado para estudos de evento onde queremos analisar 
+apenas os casos onde ocorreu o evento específico (neste caso, mudança de 
+rating)
+
+
+
+## Exemplo: Full Join
+
+
+Full Join entre Vendas e Produtos:
+
+```{r}
+# Full join: todas as vendas e todos os produtos
+# Passo 1: Pegamos a tabela 'vendas'
+# Passo 2: Combinamos com produtos mantendo TUDO de ambas as tabelas
+completo_vendas_produtos <- vendas %>%
+  full_join(produtos, by = "codigo_produto")
+
+# Visualizando o resultado
+completo_vendas_produtos
+```
+
+**Observe que**:
+
+- A venda do produto "P006" que não existe na tabela de produtos aparece 
+  com NAs
+  
+- O produto "P005" que não tem vendas também aparece com NAs
+
+- O full_join é útil para ver "tudo junto" e identificar inconsistências
+
+
+
+## Exemplo: Right Join
+
+
+Right Join entre Vendas e Produtos:
+
+```{r}
+# Right join: todos os produtos, mesmo sem vendas
+# Passo 1: Pegamos a tabela 'vendas'
+# Passo 2: Combinamos com TODOS os produtos, mesmo os sem vendas
+produtos_vendas_right <- vendas %>%
+  right_join(produtos, by = "codigo_produto")
+
+# Visualizando o resultado
+produtos_vendas_right
+```
+
+**Observe que**:
+
+- Agora o produto "P005" (Cadeira Ergonômica) **aparece** no resultado
+- Como esse produto não tem vendas, as colunas de vendas aparecem com NA
+- O right_join é útil para identificar produtos sem movimento
+
+
+
+## Exemplo: Combinando Múltiplas Tabelas
+
+
+Estudo integrado de Governança, Retorno e Risco Sistêmico:
+
+```{r}
+# Tabela de empresas e características de governança
+governanca <- tribble(
+  ~codigo_negociacao, ~empresa,         ~indice_governanca, ~tipo_controlador, ~comite_auditoria,
+  "PETR4",            "Petrobras",      6.8,                "Estatal",         TRUE,
+  "VALE3",            "Vale",           8.2,                "Pulverizado",     TRUE,
+  "ITUB4",            "Itaú Unibanco",  7.9,                "Familiar",        TRUE,
+  "BBDC4",            "Bradesco",       7.6,                "Familiar",        TRUE,
+  "MGLU3",            "Magazine Luiza", 7.1,                "Familiar",        FALSE
+)
+# visualiza o resultado
+governanca
+```
+
+
+```{r}
+# Tabela de retornos anuais ajustados
+retornos <- tribble(
+  ~codigo_negociacao, ~ano,  ~retorno_anual, ~volatilidade, ~beta,
+  "PETR4",            2023,   0.125,          0.285,        1.32,
+  "VALE3",            2023,   0.084,          0.215,        1.18,
+  "ITUB4",            2023,   0.152,          0.195,        0.87,
+  "BBDC4",            2023,   0.138,          0.205,        0.92,
+  "ABEV3",            2023,   0.062,          0.165,        0.72
+)
+# visualiza o resultado
+retornos
+```
+
+
+```{r}
+# Tabela de indicadores contábeis
+indicadores <- tribble(
+  ~codigo_negociacao, ~ano,  ~roa,    ~alavancagem, ~tamanho_ativo,
+  "PETR4",            2023,   0.089,   0.325,        395120000,
+  "VALE3",            2023,   0.112,   0.285,        312450000,
+  "ITUB4",            2023,   0.064,   0.852,        2185620000,
+  "BBDC4",            2023,   0.058,   0.815,        1924380000,
+  "MGLU3",            2023,   0.052,   0.368,         28540000
+)
+# visualiza o resultado
+indicadores
+```
+
+
+Pipeline de análise integrada:
+
+```{r}
+analise_integrada <- governanca %>%
+  # Primeiro, adicionamos dados de retorno e risco
+  left_join(retornos, by = "codigo_negociacao") %>%
+  # Depois, adicionamos indicadores contábeis
+  left_join(indicadores, by = c("codigo_negociacao", "ano")) %>%
+  # Selecionamos apenas as variáveis relevantes para o estudo
+  select(
+    empresa, codigo_negociacao, ano, indice_governanca, tipo_controlador,
+    retorno_anual, volatilidade, beta, 
+    roa, alavancagem, tamanho_ativo
+  )
+
+# Visualizando o resultado
+analise_integrada
+```
+
+**Observe como**:
+
+- Este pipeline combina três conjuntos de dados distintos (governança, 
+  mercado e contábil)
+- Empresas como "Magazine Luiza" (MGLU3) aparecem sem dados de retorno (NA)
+- "ABEV3" aparece nos dados de retorno, mas não nas outras tabelas
+
+**Implicações metodológicas**:
+
+- O uso de left_join manteve todas as empresas com dados de governança, 
+  revelando lacunas nos dados
+  
+- A definição desta amostra de estudo (firmas com dados de governança) 
+  é uma escolha metodológica explícita
+  
+- Este tipo de construção de amostra é muito útil em estudos empíricos que analisam relações entre diferentes conjuntos de observações e variáveis.
+
+
+
+## Exemplo: Análise de Demonstrações Financeiras
+
+Cenário: Pesquisa em Desempenho Financeiro Setorial.
+
+Tabela com informações básicas das empresas:
+
+```{r}
+empresas <- tribble(
+  ~codigo_cvm, ~nome_empresa,      ~setor,              ~tamanho,  ~governanca,
+  "11592",    "Petrobras S.A.",    "Petróleo e Gás",    "Grande",  "Nível 2",
+  "19615",    "Vale S.A.",         "Mineração",         "Grande",  "Novo Mercado",
+  "14311",    "Itaú Unibanco S.A.", "Financeiro",       "Grande",  "Nível 1",
+  "18112",    "Natura Cosméticos", "Bens de Consumo",   "Médio",   "Novo Mercado",
+  "22691",    "Magazine Luiza",    "Varejo",            "Médio",   "Novo Mercado"
+)
+# visualiza o resultado
+empresas
+```
+
+
+Tabela de indicadores financeiros trimestrais:
+
+```{r}
+indicadores_financeiros <- tribble(
+  ~codigo_cvm, ~ano, ~trimestre, ~roa,  ~alavancagem, ~liquidez_corrente, ~margem_ebitda,
+  "11592",     2024,  1,          0.032,  0.58,         1.45,              0.28,
+  "11592",     2024,  2,          0.041,  0.56,         1.52,              0.31,
+  "19615",     2024,  1,          0.045,  0.32,         2.10,              0.34,
+  "19615",     2024,  2,          0.048,  0.31,         2.15,              0.36,
+  "14311",     2024,  1,          0.018,  0.82,         1.28,              0.42,
+  "14311",     2024,  2,          0.019,  0.81,         1.31,              0.41,
+  "22691",     2024,  1,          0.028,  0.62,         1.18,              0.12,
+  "22691",     2024,  2,          0.025,  0.68,         1.12,              0.10
+)
+# visualiza o resultado
+indicadores_financeiros
+```
+
+
+Combinando dados para análise de desempenho por setor:
+
+```{r}
+analise_setorial <- empresas %>%
+  left_join(indicadores_financeiros, by = "codigo_cvm") %>%
+  select(nome_empresa, setor, ano, trimestre, roa, alavancagem, margem_ebitda)
+
+# Visualizando o resultado
+analise_setorial
+```
+
+**Aplicação em Pesquisa**:
+
+- Este tipo de join permite analisar desempenho financeiro controlando 
+por características específicas das empresas
+
+- Útil para estudos que investigam:
+  - Impacto de governança corporativa nos indicadores contábeis
+  - Diferenças de desempenho entre setores
+  - Efeito do tamanho da empresa na performance financeira
+
+- **Nota**: Observem que "Natura Cosméticos" (código 18112) não aparece 
+nos resultados porque não há dados financeiros correspondentes - 
+situação comum em pesquisas empíricas
+
+
+
+
+
+## Exemplo: Análise de Retornos Anormais
+
+Cenário: Estudo de Evento sobre Anúncios de Dividendos:
+
+Tabela de preços diários de ações: 
+
+```{r}
+precos_acoes <- tribble(
+  ~ticker,   ~data,          ~preco_fechamento, ~retorno_diario, ~volume,
+  "PETR4",   "2024-04-01",   36.75,             0.0125,          15200000,
+  "PETR4",   "2024-04-02",   37.30,             0.0150,          18500000,
+  "PETR4",   "2024-04-03",   37.05,            -0.0067,          14800000,
+  "PETR4",   "2024-04-04",   37.82,             0.0208,          21300000,
+  "PETR4",   "2024-04-05",   37.60,            -0.0058,          16900000,
+  "VALE3",   "2024-04-01",   68.45,             0.0087,          22400000,
+  "VALE3",   "2024-04-02",   68.92,             0.0069,          19800000,
+  "VALE3",   "2024-04-03",   70.15,             0.0178,          25600000,
+  "VALE3",   "2024-04-04",   71.20,             0.0150,          28300000,
+  "VALE3",   "2024-04-05",   70.85,            -0.0049,          23100000
+)
+# visualiza o resultado
+precos_acoes
+```
+
+
+Tabela de anúncios de eventos corporativos:
+
+```{r}
+eventos_corporativos <- tribble(
+  ~ticker,   ~data_anuncio,   ~tipo_evento,        ~valor,
+  "PETR4",   "2024-04-03",    "Dividendo Extra",   2.85,
+  "VALE3",   "2024-04-04",    "JCP",               1.75
+)
+# visualiza o resultado
+eventos_corporativos
+```
+
+
+Realizando análise de retornos nos dias de evento
+
+```{r}
+estudo_evento <- precos_acoes %>%
+  inner_join(eventos_corporativos, 
+             by = c("ticker", "data" = "data_anuncio")) %>%
+  select(ticker, data, tipo_evento, valor, retorno_diario, volume)
+
+# Visualizando o resultado
+estudo_evento
+```
+
+**Aplicação em Pesquisa**:
+
+- Este tipo de join é relevante para estudos de evento que analisam o 
+impacto de anúncios corporativos sobre o preço das ações
+
+- Aplicações em pesquisas financeiras incluem:
+  - Reação do mercado a anúncios de distribuição de proventos
+  - Avaliação da eficiência informacional em mercados emergentes
+  - Impacto de divulgações contábeis e eventos não-recorrentes
+
+- O `inner_join` utilizado garante que apenas os dias com eventos são 
+considerados para a análise de retornos anormais
+
+
+
+## O Desafio dos Sistemas Reais - Exemplo 
+
+Cenário: Relatório de Vendas Integrado:
+
+```{r}
+# Sistema de Cadastro de Produtos (departamento de Compras)
+produtos_cadastro <- tribble(
+  ~codigo,       ~descricao,        ~valor_unitario, ~categoria,
+  "P001",        "Notebook Pro",     4500,           "Eletrônicos",
+  "P002",        "Smartphone X",     2800,           "Eletrônicos",
+  "P003",        "Monitor 24pol",    1200,           "Informática"
+)
+# visualiza o resultado
+produtos_cadastro
+```
+
+
+```{r}
+# Sistema de Vendas (departamento Comercial)
+vendas_sistema <- tribble(
+  ~id_venda, ~cod_produto, ~data_venda,  ~qtd,
+  1,         "P001",       "2025-04-15", 1,
+  2,         "P002",       "2025-04-16", 2,
+  3,         "P003",       "2025-04-18", 2
+)
+# visualiza o resultado
+vendas_sistema
+```
+
+```{r}
+# Integrando os sistemas com diferentes nomenclaturas
+relatorio_vendas <- vendas_sistema %>%
+  left_join(produtos_cadastro, by = c("cod_produto" = "codigo")) %>%
+  select(id_venda, data_venda, cod_produto, descricao, qtd, valor_unitario) %>%
+  mutate(valor_total = qtd * valor_unitario) %>%
+  arrange(data_venda)
+
+# Resultado: um relatório integrado
+relatorio_vendas
+```
+
+**Observação**: Esta situação é extremamente comum.
+
+
+
+## Exercício 1
+
+Para cada situação abaixo, identifique qual tipo de join seria mais 
+apropriado: **left_join**, **inner_join**, **full_join** ou **right_join**: 
+
+1. **Relatório de Vendas**: Você precisa criar um relatório mostrando 
+todas as vendas realizadas com detalhes dos produtos. Algumas vendas 
+têm códigos de produtos que não existem no cadastro, mas você precisa 
+manter TODAS as vendas no relatório.
+
+**Resposta: Left_join(Vendas e produtos)**
+
+2. **Análise de Estoque**: O gerente de inventário solicitou uma lista 
+de todos os produtos cadastrados, indicando quais foram vendidos no último 
+mês. É importante que TODOS os produtos apareçam, mesmo os que não 
+tiveram vendas.
+
+**Resposta:Rigth_join**
+
+3. **Auditoria de Qualidade**: O auditor precisa verificar se há 
+inconsistências entre vendas e produtos. Ele solicitou uma análise que 
+mostre TODAS as vendas e TODOS os produtos, permitindo identificar vendas 
+sem produtos cadastrados e produtos sem vendas.
+
+**Resposta:Full_join**
+
+4. **Dashboard de Performance**: O diretor comercial pediu um dashboard 
+que mostre apenas vendas confirmadas com informações completas de cliente 
+e produto. Registros com informações incompletas devem ser excluídos.
+
+**Resposta:Inner_join**
+
+**Dica**: Pense em quais tabelas são "obrigatórias" e quais são "opcionais" 
+em cada cenário!
+
+
+
+## Exercício 2 
+
+Você precisa criar uma lista simples que mostre, para cada venda, o 
+nome do produto vendido:
+
+1. Una as tabelas de vendas e produtos
+
+2. Selecione apenas as colunas `id_venda`, `data_venda`, `nome_produto` e 
+   `quantidade`
+   
+3. Ordene por data_venda
+
+```{r}
+# Complete o código
+lista_vendas_produtos <- vendas %>%
+  # 1. Escolha o tipo de join adequado para manter todas as vendas
+  left_join(produtos, by = "codigo_produto") %>%
+  # 2. Selecione apenas as colunas importantes
+  select(
+    id_venda, 
+    data_venda, 
+    nome_produto,
+    quantidade
+  ) %>%
+  # 3. Ordene por data da venda
+  arrange(data_venda)
+
+lista_vendas_produtos
+```
+
+**Dica**: Pense em qual tipo de join deve usar. Você quer manter todas as 
+vendas mesmo sem produto cadastrado ou apenas as vendas de produtos 
+conhecidos?
+
+
+
+## Exercício 3
+
+Crie um relatório que mostre todos os clientes, mesmo aqueles que não 
+fizeram compras:
+
+1. Una as tabelas de clientes e vendas de forma a manter todos os clientes
+
+2. Selecione as colunas `id_cliente`, `nome_cliente`, `cidade`, `id_venda` e 
+`data_venda`
+
+3. Ordene por nome_cliente
+
+```{r}
+# Complete o código
+relatorio_clientes <- clientes %>%
+  # 1. Escolha o tipo de join adequado para manter todos os clientes
+  left_join(vendas, by = "id_cliente") %>%
+  # 2. Selecione apenas as colunas importantes
+  select(
+    id_cliente,
+    nome_cliente,
+    cidade,
+    id_venda,
+    data_venda
+  ) %>%
+  # 3. Ordene por nome do cliente
+  arrange(nome_cliente)
+
+relatorio_clientes
+```
+
+**Dica**: Como queremos manter todos os clientes, mesmo os que não 
+fizeram compras, qual tipo de join devemos usar?
+
+
+
+## Exercício 4
+
+- Qual função de join e quais operações de manipulação de 
+dados seriam necessárias para criar um relatório financeiro que mostre 
+todas as vendas com o valor total calculado (quantidade × preço unitário), 
+incluindo vendas de produtos que podem não estar cadastrados?
+
+- O diretor financeiro solicitou um relatório simplificado que mostre o 
+valor total de cada venda:
+
+```{r}
+# Complete o código para calcular o valor total de cada venda
+relatorio_financeiro <- vendas %>%
+  # Combine vendas com produtos usando left_join
+  left_join(produtos, by = "codigo_produto") %>%
+  # Calcule o valor total da venda
+  mutate(valor_total = quantidade * preco_unitario) %>%
+  # Selecione apenas as colunas relevantes para o relatório
+  select(
+    id_venda, 
+    data_venda,
+    codigo_produto, 
+    nome_produto,
+    quantidade, 
+    preco_unitario,
+    valor_total
+  ) %>%
+  # Ordene do maior valor total para o menor
+  arrange(desc(valor_total))
+relatorio_financeiro
+```
+
+
+
+
+
+## Exercício 5 - Desafio
+
+Você é um pesquisador investigando se empresas com melhores práticas 
+de governança apresentam desempenho financeiro superior. Você possui 
+três conjuntos de dados:
+
+```{r}
+# Dados sobre características das empresas
+dados_empresas <- tribble(
+  ~codigo_empresa, ~nome_empresa,      ~setor,              ~tamanho_ativo,
+  "E001",          "Alfa Energia",     "Energia",           35420000,
+  "E002",          "Beta Financeira",  "Financeiro",        128450000,
+  "E003",          "Gama Varejo",      "Varejo",            12830000,
+  "E004",          "Delta Indústria",  "Industrial",        42760000,
+  "E005",          "Épsilon Telecom",  "Telecomunicações",  28940000
+)
+# visualiza o resultado
+dados_empresas
+```
+
+```{r}
+# Dados sobre índices de governança corporativa
+dados_governanca <- tribble(
+  ~codigo_empresa, ~ano, ~indice_governanca, ~tipo_controle, ~comite_auditoria,
+  "E001",          2023,  7.8,               "Estatal",       TRUE,
+  "E001",          2024,  8.2,               "Estatal",       TRUE,
+  "E002",          2023,  9.1,               "Disperso",      TRUE,
+  "E002",          2024,  9.3,               "Disperso",      TRUE,
+  "E003",          2023,  5.6,               "Familiar",      FALSE,
+  "E003",          2024,  6.2,               "Familiar",      TRUE,
+  "E004",          2023,  8.4,               "Institucional", TRUE,
+  "E005",          2023,  6.9,               "Estrangeiro",   FALSE
+)
+# visualiza o resultado
+dados_governanca
+```
+
+```{r}
+# Dados financeiros trimestrais
+dados_financeiros <- tribble(
+  ~codigo_empresa, ~ano, ~trimestre, ~roa,  ~alavancagem, ~liquidez_corrente,
+  "E001",          2023,  1,          0.032,  0.58,         1.45,
+  "E001",          2023,  2,          0.035,  0.56,         1.48,
+  "E001",          2023,  3,          0.038,  0.55,         1.52,
+  "E001",          2023,  4,          0.041,  0.54,         1.55,
+  "E001",          2024,  1,          0.045,  0.53,         1.58,
+  "E002",          2023,  1,          0.028,  0.82,         1.22,
+  "E002",          2023,  2,          0.029,  0.81,         1.25,
+  "E002",          2023,  3,          0.031,  0.81,         1.26,
+  "E002",          2023,  4,          0.032,  0.80,         1.28,
+  "E002",          2024,  1,          0.034,  0.78,         1.32,
+  "E003",          2023,  1,          0.052,  0.45,         1.68,
+  "E003",          2023,  2,          0.048,  0.47,         1.65,
+  "E003",          2023,  3,          0.044,  0.50,         1.60,
+  "E003",          2023,  4,          0.040,  0.52,         1.55,
+  "E004",          2023,  1,          0.036,  0.62,         1.42,
+  "E004",          2023,  2,          0.038,  0.60,         1.45,
+  "E005",          2023,  1,          0.042,  0.58,         1.35,
+  "E005",          2023,  2,          0.044,  0.57,         1.38
+)
+# visualiza o resultado
+dados_financeiros
+```
+
+**Suas tarefas:**
+
+1. Combine os três conjuntos de dados para criar uma base analítica completa:
+
+   - Mantenha todas as empresas, mesmo que não tenham dados completos
+   - Inclua apenas dados de governança do ano 2023
+   - Preserve todas as informações das empresas (código, nome, setor, 
+     tamanho do ativo) e as métricas de governança (índice de governança, 
+     tipo de controle, comitê de auditoria)
+   - Calcule os seguintes indicadores médios anuais para 2023, agrupados por empresa:
+     - ROA médio (média dos trimestres disponíveis)
+     - Alavancagem média
+     - Liquidez corrente média
+   - Identifique para cada empresa: quantos trimestres estão disponíveis 
+     na base e quantos desses possuem dados completos de ROA
+
+**Dica**: Inicie com um rascunho do pipeline de joins necessários, identifique os campos para união das tabelas e decida sobre o tipo de join mais adequado em cada etapa. Lembre-se da importância do argumento `by` para especificar as variáveis de correspondência.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

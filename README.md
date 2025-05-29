@@ -362,3 +362,9 @@ estão sendo editados ativamente.
 de dados legível por humanos usada para os metadados de documentos 
 Quarto, caracterizada pelo formato de pares chave-valor e indentação 
 significativa.
+
+#Anotações Emily
+
+fs substitui a library
+
+Dar atenção a Metodologia CRISP-DM

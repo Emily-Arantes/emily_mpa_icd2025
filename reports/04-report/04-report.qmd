@@ -1,0 +1,625 @@
+---
+title: "Introdução à Ciência de Dados"
+subtitle: "Aula 4"
+lang: pt-BR
+author: "Seu Nome"
+date: 2025-04-24
+format: 
+  html:
+    theme: cosmo
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+<style>
+body {
+  font-size: 13pt;
+  text-align: justify;
+}
+</style>
+
+
+# Pacotes Necessários
+
+```{r}
+#| label: setup
+
+# carrega os pacotes necessários
+library(tidyverse)
+library(readxl)
+library(xts)
+library(plm)
+```
+
+
+
+# Dados Organizados (*Tidy Data*)
+
+
+## Dados **wide** (largos) e **long** (longos)
+
+
+**Exemplo 1**: Suponha que tenhamos três pacientes com identidades 
+A, B e C e que foram realizadas duas medições de pressão arterial 
+em cada paciente:
+
+```{r}
+df <- tribble(
+  ~id, ~bp1, ~bp2,
+  "A", 100, 120,
+  "B", 140, 115,
+  "C", 120, 125
+)
+
+df
+```
+
+
+Este é o caso mais comum de problemas em dados desorganizados, em que os 
+**valores** de uma variável (medição) são usados como nomes de colunas 
+(variáveis).
+
+Para os dados estarem organizados teríamos 3 variáveis:
+
+- `id` (já existe), 
+- `medição` (os nomes das colunas) e 
+- `valor` (os valores das células). 
+
+Para conseguir isso, precisamos *alongar* (*lengthening*) os dados:
+
+```{r}
+# Transformando os dados de formato wide para formato long
+df_long <- df |>
+  tidyr::pivot_longer(
+    cols = bp1:bp2,
+    names_to = "medicao",
+    values_to = "valor"
+  )
+
+df_long
+```
+
+
+**Exemplo 2**: Suponha que temos uma tabela com dados de receita trimestral 
+para diferentes produtos:
+
+```{r}
+# Criando a `tribble`
+receitas <- tribble(
+  ~produto, ~Q1, ~Q2, ~Q3, ~Q4,
+  "Produto A", 50000, 55000, 60000, 65000,
+  "Produto B", 30000, 32000, 35000, 37000,
+  "Produto C", 20000, 22000, 25000, 27000
+)
+
+receitas
+```
+
+Novamente, podemos ver que os valores de uma variável (`trimestre``)
+são usados como nomes de colunas.
+
+Vamos organizar os dados
+
+```{r}
+# Transformando os dados de formato wide para formato long
+receitas_long <- receitas %>%
+  tidyr::pivot_longer(
+    cols = Q1:Q4,
+    names_to = "trimestre",
+    values_to = "receita"
+  )
+
+receitas_long
+```
+
+
+
+
+
+# Tipos Básicos e Classes de Dados em R 
+
+## A Importância de Conhecer Tipos e Classes de Dados
+
+
+Se os métodos de análise estatística dependem da escala de 
+medição (tipo) de uma variável de interesse, compreender os tipos 
+e classes de dados da linguagem R (ou de qualquer outra) é fundamental.
+
+Cada tipo de análise ou de gráfico exige que as variáveis sejam de 
+um tipo ou classe específicos e estejam organizadas em uma 
+estrutura de dados específica.
+
+Na prática da ciência ou análise de dados, estima-se que analistas 
+e cientistas dedicam entre 60% a 80% do tempo de um projeto à 
+importação, limpeza e preparação dos dados antes de iniciar as análises.
+
+
+
+## Classe `factor`: Variável Categórica Nominal
+
+- A classe `factor` da linguagem R é apropriada para representar variáveis 
+categóricas nominais ou ordinais.
+
+
+```{r}
+# Cria um vetor de caracteres
+estado_civil <- c(
+  "Casado", "Solteiro", "Divorciado", "Solteiro",
+  "Casado", "Viúvo", "Solteiro", "Divorciado"
+)
+
+# Converte para fator (variável categórica nominal)
+estado_civil_fator <- factor(estado_civil)
+
+# Vizualizando o objetoa
+estado_civil_fator
+```
+
+
+verificando a classe:
+
+```{r}
+class(estado_civil_fator)
+```
+
+
+
+## Classe `factor`: Variável Categórica Ordinal
+
+
+```{r}
+# Vetor de texto com dados brutos
+escolaridade <- c(
+  "Médio", "Fundamental", "Superior", "Superior",
+  "Médio", "Pós-graduação", "Fundamental", "Médio"
+)
+
+# Convertendo para fator ordenado com níveis explícitos
+escolaridade_fator <- factor(escolaridade,
+  levels = c("Fundamental", "Médio", "Superior", "Pós-graduação"),
+  ordered = TRUE # indica que é um fator ordenado
+)
+
+# Visualizando o fator e sua estrutura
+escolaridade_fator
+```
+
+
+verificando a classe:
+
+```{r}
+class(escolaridade_fator)
+```
+
+
+
+## Vetores - exemplos
+
+```{r}
+# cria um vetor numérico manualmente
+idades <- c(22, 25, 19, 30, 27)
+idades
+```
+
+
+```{r}
+# cria um vetor de caracteres
+nomes <- c("Ana", "Bruno", "Carla", "Daniel", "Eduarda")
+nomes
+```
+
+
+```{r}
+# cria um vetor lógico
+aprovados <- c(TRUE, FALSE, TRUE, TRUE, FALSE)
+aprovados
+```
+
+
+
+## Data Frames e Tibbles
+
+- **Data frame**: Estrutura tabular (similar a uma planilha Excel)
+
+- Coleção de vetores **de mesmo comprimento** mas que podem 
+ser de **tipos diferentes**
+
+- Cada coluna = um vetor = uma variável
+
+- Cada linha = uma observação
+
+- **Tibble**: Versão moderna de data frame do pacote `tibble` 
+(parte do `tidyverse`)
+
+- Mais consistente e previsível que as data frames
+
+- Inclui o tipo de cada coluna ao imprimir
+
+- Não converte strings em fatores automaticamente
+
+
+
+## Exemplo de data frame/tibble
+
+```{r}
+#| code-line-numbers: "1-4|6-7|9-10"
+
+# cria vetores manualmente
+idades <- c(22, 25, 19, 30, 27)
+nomes <- c("Ana", "Bruno", "Carla", "Daniel", "Eduarda")
+aprovados <- c(TRUE, FALSE, TRUE, TRUE, FALSE)
+
+# a funcao data.frame cria uma data frame usando os vetores
+dados <- data.frame(idades, nomes, aprovados)
+
+# exibe a data frame criada
+dados
+```
+
+
+
+
+Importando e preparando os dados do caso da destilaria:
+
+```{r}
+## define o caminho relativo do arquivo no projeto RStudio
+caminho <- here::here("data/raw/productionlog_sample.csv")
+
+## importa o arquivo com a função read_csv
+dados_destilaria <- readr::read_csv(caminho)
+
+# preparando (limpando) os dados
+dados_destilaria_limpos <- dados_destilaria %>%
+  select(-MONTH) %>%
+  rename(
+    dia = DAY,
+    mestre_responsavel = MANUFACTURER,
+    tipo_produto = PRODUCT,
+    turno = SHIFT,
+    cor = COLOR,
+    fornecedor_malte = MALTING,
+    indicador_qualidade = TASTING,
+  ) %>%
+  # Em seguidda, convertemos cada variável para classes adequadas
+  mutate(
+    dia = as.numeric(dia),
+    mestre_responsavel = as.factor(mestre_responsavel),
+    tipo_produto = as.factor(tipo_produto),
+    turno = as.factor(turno),
+    cor = as.numeric(cor),
+    fornecedor_malte = as.factor(fornecedor_malte),
+    indicador_qualidade = as.numeric(indicador_qualidade)
+  ) %>%
+  drop_na()
+```
+
+
+
+A função head exibe as 6 primeiras linhas de um objeto:
+
+```{r}
+head(dados_destilaria_limpos)
+```
+#A função head exibe 6 primeiras linhas de um objeto, caso queira definir é só 
+# colocar , e aquantidade
+
+A função tail exibe as 6 últimas linhas de um objeto
+
+
+```{r}
+tail(dados_destilaria_limpos)
+```
+
+Acessando uma coluna/cariável
+
+```{r}
+# acessando a variavel indicador_qualidade
+# acesse com $
+dados_destilaria_limpos$indicador_qualidade
+```
+
+```{r}
+# acessando a variavel fornecedor_malte
+dados_destilaria_limpos$fornecedor_malte
+```
+
+
+Verificando a classe dos dados
+
+```{r}
+class(dados_destilaria_limpos)
+```
+
+Ao importar dados, todo objeto lido por R como uma data frame, 
+também será uma tibble.
+
+
+
+
+
+# Importação e Estruturação de Dados Típicos de Finanças
+
+
+## Dados em Secção-Cruzada
+
+Importe o arquivo `dados_artigo_reveduc.xlsx` utlizando a função 
+`readxl::read_xlsx` e nomeie o objeto como `dados_artigo`:
+
+```{r}
+# define o caminho relativo do arquivo unemployment.csv
+path_dados_artigo <- here::here("data/raw/dados_artigo_reveduc.xlsx")
+
+# importa o arquivo
+dados_artigo <- readxl::read_xlsx(path_dados_artigo)
+
+# verifica a estrutura do objeto
+dplyr::glimpse(dados_artigo)
+```
+
+
+Estatísticas básicas:
+
+```{r}
+summary(dados_artigo)
+```
+
+
+### Preparação dos Dados
+
+```{r}
+# Alterando a classe/tipo das colunas
+dados_artigo_analise <- dados_artigo |>
+  transmute(
+    turma = as.factor(turma),
+    cotas = as.factor(cotas),
+    periodo_letivo = as.factor(periodo_letivo),
+    onde_estudou = as.factor(onde_estudou),
+    sexo = as.factor(sexo),
+    cor = as.factor(cor),
+    renda_familiar = as.integer(renda_familiar),
+    cra = as.numeric(coeficiente_rendimento_academico)
+  )
+
+# verifica a estrutura do objeto
+dplyr::glimpse(dados_artigo_analise)
+```
+
+Estatísticas básicas:
+
+```{r}
+summary(dados_artigo_analise)
+```
+
+
+
+
+
+## Dados de Séries Temporais
+
+
+### Caso 1: Arquivo de Dados **Não** Contém Datas
+
+O arquivo `unemployment.csv` contém 63 dados mensais sobre a 
+taxa de desemprego civil dos EUA como porcentagem da força de trabalho 
+para os anos 2012-2017, obtidos da base da dados do Federal Reserve 
+Bank of Saint Louis.
+
+
+Importe o arquivo `unemployment.csv` utlizando a função 
+`readr::read_csv()` e nomeie o objeto como `dados_desemeprego`. 
+
+```{r}
+# define o caminho relativo do arquivo unemployment.csv
+path_unemployment <- here::here("data/raw/unemployment.csv")
+
+# importa o arquivo
+dados_desemprego <- readr::read_csv(path_unemployment)
+
+# verifica a estrutura do objeto
+dplyr::glimpse(dados_desemprego)
+```
+
+
+Verificando a classe do objeto:
+
+```{r}
+# verifica a classe do objeto
+class(dados_desemprego)
+```
+
+
+Transforme `dados_desemprego` para a classe `ts` (de *time series*) 
+indicando que os dados são mensais e o primeiro período é janeiro de 2012 
+e nomeie o objeto como `desemprego_ts`:
+
+```{r}
+# converte a data frame dados_desemprego em um objeto da classe ts
+desemprego_ts <- ts(dados_desemprego, start = c(2012, 1), frequency = 12)
+
+# verifica a classe do objeto
+class(desemprego_ts)
+```
+
+
+Visualizando o conteúdo do objeto:
+
+```{r}
+desemprego_ts
+```
+
+
+Utilizando a função `as.xts` do pacote `xts`, converta o objeto 
+`desemprego_ts` para um objeto da classe `xts` e nomeie este objeto como `desemprego_xts.`:
+
+```{r}
+# converte o objeto desemprego_ts para um objeto da classe xts
+desemprego_xts <- as.xts(desemprego_ts)
+
+# verifcica a classe do objeto
+class(desemprego_xts)
+```
+
+
+Visualizando o conteúdo do objeto:
+
+```{r}
+desemprego_xts
+```
+
+É sempre fundamental analisar gráficos de séries temporais:
+
+```{r}
+plot(desemprego_xts)
+```
+
+
+
+
+## Caso 2: Arquivo de Dados **Contém** Datas
+
+O arquivo `ipeadata[06-04-2021-04-16].csv`, obtido no site [ipeadata](http://www.ipeadata.gov.br/Default.aspx){target="_blank"} contém 
+dados diários sobre a taxa de câmbio real/dólar, sendo que a primeira 
+coluna contém os dias. 
+
+
+Importe o arquivo `ipeadata[06-04-2021-04-16].csv` utlizando a função `readr::read_csv()` e nomeie o objeto importado como `dados_cambio`.
+
+Podemos definir que a primeira coluna são dias usando o argumento 
+`col_type()` da funcão `readr::read_csv2()`:
+
+```{r}
+# define o caminho relativo do arquivo
+path_cambio <- here::here("data/raw/ipeadata[06-04-2021-04-16].csv")
+
+# importa o arquivo ipeadata[06-04-2021-04-16].csv
+dados_cambio <- readr::read_csv2(
+  path_cambio,
+  na = c(" "),
+  skip = 1,
+  locale = locale(decimal_mark = ","),
+  col_names = c("dia", "real_dolar"),
+  col_types = cols(dia = col_date(format = "%d/%m/%Y"), real_dolar = col_double())
+)
+
+# verifica a estrutura do objeto
+dplyr::glimpse(dados_cambio)
+```
+
+
+Verificando se há dados faltantes:
+
+```{r}
+summary(dados_cambio)
+```
+
+
+Elimine a coluna `X3`, selecionando apenas as variáveis 
+de interesse (`dia` e `real_dolar`) e retire os dados faltantes (`NA`):
+
+```{r}
+dados_cambio_limpos <- dados_cambio %>%
+  select(dia, real_dolar) %>%
+  drop_na()
+summary(dados_cambio_limpos)
+```
+
+
+Utilizando a função `as.xts` do pacote `xts`, converta o objeto 
+`dados_cambio_limpos` para um objeto da classe `xts` e nomeie este objeto como `cambio_xts.` 
+
+```{r}
+cambio_xts <- as.xts(dados_cambio_limpos, order_by = dados_cambio_limpos$dia)
+class(cambio_xts)
+```
+
+
+Visualizando o conteúdo do objeto:
+
+```{r}
+cambio_xts
+```
+
+
+É sempre fundamental analisar gráficos de séries temporais:
+
+```{r}
+plot(cambio_xts, main = "Taxa Diária de Câmbio R$/Dólar")
+```
+
+
+
+
+
+## Dados em Painel 
+
+
+### Dados em Painel com o Pacote `plm`
+
+O arquivo `Data_AgricultureClimate.csv` contém um painel envolvendo 568 
+municípios paulistas com informações anuais (1990 a 2014) para o valor da 
+produção agrícola (em R$), área agrícola, temperatura média e precipitação 
+total no ano. 
+
+Estes dados foram utilizados no artigo de @maia2018.
+
+O arquivo contém as seguintes variáveis:
+
+- `ano`: 1990 a 2014
+- `munic`: código do município no IBGE
+- `vtotal`: valor total da produçao agropecuária (R$)
+- `areatotal`: área agrícola no município
+- `tempano`: temperatura média no ano
+- `precano`: precipitacao total no ano
+
+Os autores estimaram variações para o seguinte modelo para as variáveis 
+em estudo:
+
+$$
+log(vtotal) = log(areatotal) + tempano + precano + erro
+$$
+
+
+Importe o arquivo `Data_AgricultureClimate.csv` usando a função 
+`readr::read_csv` e nomeie o objeto importando como `dados_agri`. 
+
+```{r}
+# pacotes necessários
+library(plm)
+
+# define o caminho relativo do arquivo unemployment.csv
+path_agri <- here::here("data/raw/Data_AgricultureClimate.csv")
+
+# importa o arquivo
+dados_agri <- readr::read_csv(path_agri)
+
+# verifica a estrutura do objeto
+dplyr::glimpse(dados_agri)
+```
+
+
+
+Declare o objeto como uma df para dados em painel usando a função 
+`pdata.frame()` do pacote `plm`, nomeie o objeto criado como `agri_pd` e 
+exiba a estrutura dos dados em painel usando a função `pdim`, também 
+do pacote plm:
+
+```{r}
+agri_pd <- pdata.frame(dados_agri, index = c("munic", "ano"))
+pdim(agri_pd)
+```
+
+
+Exibe as primeiras 26 obeservações do objeto `agri_pd`
+
+```{r, echo=TRUE}
+head(agri_pd, 26)
+```
+
+
+
+
