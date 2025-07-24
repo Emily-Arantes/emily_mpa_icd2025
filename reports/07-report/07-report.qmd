@@ -1,0 +1,560 @@
+---
+title: "Introdução à Ciência de Dados"
+subtitle: "Aula 8"
+lang: pt-BR
+author: "Emily Arantes"
+format: 
+  html:
+    theme: cosmo
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+<style>
+body {
+  font-size: 13pt;
+  text-align: justify;
+}
+</style>
+
+```{r}
+#| label: setup
+#| echo: false
+
+# configura exibição de números
+options(digits = 8, scipen = 999)
+
+# carrega pacotes
+library(tidyverse)
+```
+
+
+
+
+
+# Conceitos Fundamentais de Probabilidade
+
+## Propriedades da Variância
+
+Propriedades em R
+
+```{r}
+# Exemplo das propriedades
+set.seed(123)
+investimento <- rnorm(1000, mean = 0.05, sd = 0.12)  # Retorno 5%, vol 12%
+```
+
+
+```{r}
+# Propriedade 1: V(X + constante) = V(X)
+# Adicionar uma constante não altera o risco
+taxa <- 0.02
+var(investimento)
+var(investimento + taxa)  # Variância igual
+```
+
+
+```{r}
+# Propriedade 2: V(a*X) = a²*V(X)  
+# Dobrar o investimento quadruplica o risco
+dobro_investimento <- 2 * investimento
+var(investimento)
+var(dobro_investimento)  # 4 vezes maior
+2^2 * var(investimento)  # Confirmação teórica
+```
+
+
+
+## Como simular uma VA com distribuição de Bernoulli
+
+
+```{r}
+# Fixa a semente para reprodutibilidade
+set.seed(123) 
+
+# Simula 10 observações de uma VA Bernoulli
+simulacao_bernoulli <- rbinom(n = 10, size = 1, prob = 0.5)
+simulacao_bernoulli
+```
+
+
+
+
+## Como simular uma VA com distribuição Binomial?
+
+
+```{r}
+# Fixa a semente para reprodutibilidade
+set.seed(123) 
+
+# Simula 100 observações de uma VA Binomial
+simulacao_binomial <- rbinom(n = 100, size = 10, prob = 0.5)
+simulacao_binomial
+```
+
+
+
+
+# Distribuições de Probabilidade de VA Contínuas 
+
+
+## Distribuição Uniforme Contínua
+
+
+Exemplo em R:
+
+Gerando 10 números uniformes no intervalo [0,1]:
+
+```{r}
+set.seed(42)  # para reprodutibilidade
+runif(10)
+```
+
+Visualizando a distribuição com um histograma:
+
+```{r}
+amostra <- runif(10000)
+hist(amostra, breaks = 20, col = "steelblue", main = "Distribuição Uniforme U(0,1)",
+     xlab = "Amostra gerada", probability = TRUE)
+```
+
+Aproximando $P(0.2 < Y < 0.5)$:
+
+```{r}
+mean(amostra > 0.2 & amostra < 0.5)  # Aproximação empírica de P(0.2 < Y < 0.5)
+```
+
+Valor exato: $P(0.2 < Y < 0.5) = 0.5 - 0.2 = 0.3$
+
+
+Aplicações
+
+* Base para **simulações de Monte Carlo**
+* Construção de variáveis aleatórias de qualquer outra distribuição
+* Geração de amostras aleatórias na prática
+
+
+
+
+## Transformações da Uniforme
+
+
+Exemplo 1: Gerando variável Exponencial a partir de $U(0,1)$
+
+Queremos gerar uma variável $X \sim \text{Exponencial}(\lambda)$, 
+cuja **função de distribuição acumulada (CDF)** é:
+
+$$
+F_X(x) = 1 - e^{-\lambda x}, \quad x \geq 0
+$$
+
+O método da **inversa da CDF** nos diz que podemos gerar amostras 
+de $X$ se:
+
+$$
+X = F_X^{-1}(U), \quad \text{com } U \sim \mathcal{U}(0,1)
+$$
+
+📐 Invertendo a CDF:
+
+Começamos com:
+
+$$
+u = F_X(x) = 1 - e^{-\lambda x}
+$$
+
+Resolvendo para $x$:
+
+$$
+e^{-\lambda x} = 1 - u
+\Rightarrow -\lambda x = \ln(1 - u)
+\Rightarrow x = -\frac{1}{\lambda} \ln(1 - u)
+$$
+
+
+Mas por que usamos $\ln(U)$ em vez de $\ln(1 - U)$?
+
+Como $U \sim U(0,1)$, então também $1 - U \sim U(0,1)$. A distribuição 
+é **simétrica** em torno de 0.5, então qualquer transformação baseada 
+em uma variável uniforme tem a **mesma distribuição** se feita sobre 
+$U$ ou $1 - U$.
+
+Portanto, por **conveniência computacional**, usamos:
+
+$$
+X = -\frac{1}{\lambda} \ln(U)
+$$
+
+Esse valor segue a mesma distribuição exponencial.
+
+Em R:
+
+```{r}
+# Gerando 10.000 valores da Exponencial(λ) com λ = 2
+set.seed(42)
+u <- runif(10000)      # Uniforme(0,1)
+lambda <- 2
+x <- -log(u) / lambda  # Exponencial(λ)
+
+# Visualizando a distribuição
+hist(x, breaks = 30, col = "orange", probability = TRUE,
+     main = "Exponencial(λ = 2) gerada a partir de U(0,1)",
+     xlab = "x")
+
+# Comparando com densidade teórica
+curve(dexp(x, rate = lambda), add = TRUE, col = "blue", lwd = 2)
+legend("topright", legend = c("Histograma simulado", "Densidade teórica"),
+       fill = c("orange", NA), border = NA, lty = c(NA, 1), col = c(NA, "blue"))
+```
+
+
+Exemplo 2: Geração de Normal Padrão
+
+Não existe inversa analítica simples para a CDF da dist. normal padronizada
+$\Phi(x)$, mas:
+
+- Pode-se usar aproximações numéricas (função `qnorm()` em R):
+
+```{r}
+z <- qnorm(runif(10000))  # Z ~ N(0,1)
+hist(z, breaks = 30, col = "skyblue", probability = TRUE,
+     main = "Normal padrão gerada com qnorm(runif())")
+curve(dnorm(x), add = TRUE, col = "darkblue", lwd = 2)
+```
+
+
+
+
+# Distribuição Normal 
+
+
+## Funções R para Distribuição Normal 
+
+
+Exemplos:
+
+```{r}
+#| echo: true
+# Simular 5 valores de uma distr. normal padrão
+set.seed(123)
+rnorm(5)
+```
+
+```{r}
+# f(0) - densidade no ponto 0
+dnorm(0)
+```
+
+```{r}
+# P(Z ≤ 1.96)
+pnorm(1.96)
+```
+
+```{r}
+# Encontra z tal que P(Z ≤ z) = 0.975
+qnorm(0.975)
+```
+
+
+
+## Exercício 1 
+
+Calcule as seguintes probabilidades associadas a uma distribuição normal padronizada.
+
+a. $P(Z <= 1.25)$
+
+```{r}
+pnorm(1.25)
+```
+
+
+b. $P(Z > 1.25)$
+
+```{r}
+1-pnorm(1.25)
+```
+
+
+c. $P(Z <= - 0.25)$
+
+```{r}
+pnorm(-0.25)
+```
+
+
+d. $P(-0.8 <= Z <= 1.25)$
+
+```{r}
+#A probabilidade de Z estar entre -0.80 e 1.25 é a diferença entre as probabilidades acumuladas até esses pontos
+
+pnorm(1.25)-pnorm(-0.8)
+```
+
+
+
+
+## Exercício 2 
+
+::: {.callout-note icon="false"}
+## Distribuicao Normal: Calcule os quantis associados às seguintes probabilidades
+
+a. $P(Z < q)$ = 0.9798
+
+```{r}
+qnorm(0.9798, mean = 0, sd = 1)
+```
+
+
+b. $P(Z < q)$ = 0.2546
+
+```{r}
+qnorm(0.2546, mean = 0, sd = 1)
+```
+
+
+c. $P(Z > q)$ = 0.1075
+
+```{r}
+qnorm(1-0.1075, mean = 0, sd = 1)
+```
+
+
+d. $P(Z > q)$ = 0.9418
+
+```{r}
+qnorm(1-0.9418, mean = 0, sd = 1)
+```
+
+
+
+
+
+
+# Simulação de Monte Carlo {.center background-color="#F1E9D2"}
+
+
+## Métodos de Monte Carlo
+
+**Exemplo 1:** Probabilidade de obter "cara" em lançamentos de uma moeda 
+honesta
+
+Vamos simular $n$ lançamentos e estimar $P(\text{cara})$:
+
+```{r}
+mean(sample(0:1, 10, replace = TRUE)) # 10 lançamentos
+```
+
+```{r}
+mean(sample(0:1, 100, replace = TRUE)) # 100 lançamentos
+```
+
+```{r}
+mean(sample(0:1, 1000, replace = TRUE)) # 1000 lançamentos 
+```
+
+```{r}
+mean(sample(0:1, 10000, replace = TRUE)) # 10000 lançamentos 
+```
+
+- `0` representa "coroa" e `1` representa "cara".
+
+- A função `mean()` fornece a proporção de caras, que é uma estimativa de 
+$P(\text{cara}) = 0.5$.
+
+
+
+**Exemplo 2** Probabilidade de obter três "caras" em três lançamentos
+
+```{r}
+n <- 10000
+vetor_simulacoes <- numeric(n)
+
+for (i in 1:n) {
+  teste <- sample(0:1, 3, replace = TRUE)
+  vetor_simulacoes[i] <- as.numeric(sum(teste) == 3)
+}
+
+mean(vetor_simulacoes)
+```
+
+* Cada iteração simula 3 lançamentos.
+* Se todos os 3 forem "cara", soma será 3, registrando um "sucesso".
+* A média final é a estimativa de $P(\text{3 caras}) = \frac{1}{8} = 0,125$.
+
+**Conclusão**
+
+Métodos de Monte Carlo baseiam-se na ideia de que, ao repetir um experimento 
+aleatório muitas vezes, a média dos resultados converge para o valor 
+esperado do fenômeno modelado — uma consequência direta da 
+**Lei dos Grandes Números**. Isso os torna ferramentas poderosas para 
+resolver problemas onde abordagens determinísticas são impraticáveis.
+
+
+
+
+## Integração de Monte Carlo
+
+
+**Exemplo 1**
+
+Para resolver a seguinte integral definida via simulação de Monte Carlo:
+
+$$
+\int_{2}^{5} \sin(x)dx
+$$
+
+basta fazermos:
+
+```{r}
+# fixando a semente do algoritmo
+set.seed(2023)
+
+# integracao via SMC
+
+## Gerando amostras uniformes no intervalo [2, 5]
+u <- runif(100000, min = 2, max = 5)
+
+## Calculando a média/valor esperado da função seno
+(5 - 2)*mean(sin(u))
+```
+
+Resolvendo analiticamente a integral, verifica-se que o valor 
+exato é -0,7.
+
+```{r}
+# resolvendo numericamente a integral
+integrate(sin, 2, 5)
+```
+
+
+**Exemplo 2:**
+
+Considere a integral:
+
+$$
+\int_{0}^{1} \frac{\sin(x(1 - x))}{1 + x + \sqrt{x}} \, dx
+$$
+
+Esta integral pode ser estimada por Monte Carlo amostrando 
+$U_i \sim \mathcal{U}(0,1)$ e calculando a média:
+
+```{r}
+# Semente para reprodutibilidade
+set.seed(2023)
+
+# Função de interesse
+f <- function(x) sin(x*(1 - x)) / (1 + x + sqrt(x))
+
+# Integração via Monte Carlo
+u <- runif(100000)
+mean(f(u))  # Estimativa da integral
+```
+
+Podemos comparar com o valor exato (numérico) da integral usando o 
+método adaptativo de quadratura:
+
+```{r}
+integrate(f, 0, 1)
+```
+
+**Conclusão**
+
+* A **integração de Monte Carlo** transforma um problema determinístico 
+  (uma integral) em um problema probabilístico (cálculo de um 
+  valor esperado).
+  
+* Os **limites de integração** determinam o intervalo da distribuição 
+  uniforme usada para gerar amostras.
+  
+* A precisão aumenta com o número de amostras, graças à **Lei dos Grandes Números**.
+
+
+
+
+
+## Exercício 1
+
+Simule 1.000 realizações de uma variável aleatória ($Z$) que segue uma 
+distribuição normal padronizada ($Z \sim N(\mu = 0, \sigma = 1)$) e use 
+sua amostra simulada para estimar as seguintes probabilidades:
+
+a. $P(Z > 2.5)$
+
+```{r}
+#Simulando a variável aleatória Z
+
+set.seed(123)
+z <- rnorm(1000)
+sum(z>2.5)/1000
+```
+```{r}
+1-pnorm(2.5)
+```
+
+
+
+b. $P(-1.2 < Z < 1.3)$
+
+Compare os dois resultados com o valor exato que pode ser obtido com 
+a função `pnorm()`.
+
+```{r}
+#Estimativa da probabilidade por simulação
+set.seed(123)
+z <- rnorm(1000)
+sum(z>-1.2 & z<1.3)/1000
+```
+```{r}
+pnorm(1.3) - pnorm(-1.2)
+```
+
+
+
+
+## Exercício 2
+
+
+Use Simulação de Monte Carlo para estimar as seguintes integrais utilizando 
+1000 repetições. Compare com a resposta exata, a qual pode ser obtida com a 
+função `integrate()` da linguagem R.
+
+a. $\int_{1}^{3} x^2dx$.
+
+```{r}
+set.seed(123)
+
+a <- runif(1000, min = 1, max = 3)
+
+mean(a^2)*(3 - 1)
+
+
+g <- function(x) {
+  out <- x^2
+}
+
+
+integrate(g, lower = 1, upper = 3)
+```
+
+
+b. $\int_{0}^{\pi} sin(x)dx$
+
+```{r}
+set.seed(789)
+
+b <- runif(1000, min = 0, max = pi)
+
+mean(sin(b))*(pi)
+
+g2 <- function(x) {
+  out <- sin(x)
+}
+  
+integrate(g2, lower = 0, upper = pi)
+```
+

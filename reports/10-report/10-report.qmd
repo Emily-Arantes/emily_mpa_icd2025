@@ -1,0 +1,497 @@
+---
+title: "Introdução à Ciência de Dados"
+subtitle: "Aula 13"
+lang: pt-BR
+author: "Emily Arantes Duque"
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+<style>
+body {
+  font-size: 12pt;
+  text-align: justify;
+}
+</style>
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# Cofigurações para exibicão de números
+options(
+  digits = 5, # número de casas decimais
+  scipen = 999 # desativa notação científica
+)
+
+# carrega pacotes
+library(tidyverse)
+library(ggpubr)   # para gráfico quantil-quantil 
+```
+
+
+
+# Estimação por Máxima Verossimilhança 
+
+## EMV de $p$
+
+### Usando a Linguagem R
+
+- Vamos obter o EMV de $p$, a proporção de pessoas que acreditam 
+que há vida após a morte usando R. 
+
+- Além disso, vamos visualizar a função de verossimilhança e a função 
+de log-verossimilhança
+
+
+```{r}
+#| echo: false
+
+# Função para plotar a função de verossimilhança e a função de log-verossimilhança
+plot_funcao_mv = function(y,n)
+{
+    L <-  function(p) dbinom(y,n,p)
+    emv <- optimize(L, interval = c(0,1), maximum = TRUE)$max
+    p <-  (1:100)/100
+
+    # graficos da funcao de MV e de Log-MV
+    par(mfrow = c(1,1))
+    plot(p, L(p), type = 'l')
+    abline(v = emv)
+    plot(p, log(L(p)), type = 'l')
+    abline(v = emv)
+    round(emv, 2)
+}
+plot_funcao_mv(1720,2123)
+```
+
+
+
+
+## Aplicação 1
+
+### Estimação de Intervalo de Confiança para uma Proporção
+
+- Uma pesquisa do Eurobarômetro de 2019 relatou que a porcentagem de 
+pessoas que são ateístas ou agnósticas varia na Europa Ocidental entre 9% 
+na Irlanda e 52% na Holanda.
+
+- Intervalos de confiança mostram a precisão dessas estimativas. 
+
+- Vamos obter uma estimativa por intervalo de confiança da proporção de 
+holandeses que são ateístas ou agnósticos para o caso da Holanda, onde 
+dos 1.497 entrevistados, 778 relataram ser ateus ou agnósticos.
+
+```{r}
+# número total de entrevistados na Holanda
+n <- 1497
+
+# número de entrevistados que relataram ser ateus ou agnósticos
+x <- 778
+
+# Intervalo para p
+ic_holanda <- binom.test(x, n, conf.level = 0.95)
+ic_holanda
+
+# Obtendo somente a estimativa por intervalo de confiança
+round(ic_holanda$conf.int, 2)
+```
+
+Reportando o resultado:
+
+- A proporção de holandeses que se declararam ateus ou 
+agnósticos na pesquisa foi de 0,42 (IC 95% [0,49 0.55]), indicando que, 
+com 95% de confiança, a verdadeira proporção de holandeses que se declaram 
+ateístas ou agnósticos está entre 49% e 55%.
+
+
+
+## Aplicação 2
+
+### Estimação de Intervalo de Confiança para Comparar Duas Proporções
+
+- A pesquisa realizada por @benson2006 utilizou pacientes de seis hospitais 
+dos EUA que iriam receber cirurgia de revascularização do miocárdio. 
+Os pacientes foram aleatoriamente designados para dois grupos. 
+
+- Para um grupo, os cristãos, os voluntários foram instruídos a orar por 
+uma cirurgia bem-sucedida com uma recuperação rápida e saudável e sem 
+complicações. 
+
+- A oração começou na noite anterior à cirurgia e continuou por duas
+semanas. O outro grupo não teve voluntários orando por eles. 
+
+- A resposta foi se complicações médicas ocorreram dentro de 30 dias da 
+cirurgia.
+
+- A tabela a seguir sumariza os resultados:
+
+```
+        Complications
+        -------------
+Prayer   Yes   No       Total
+Yes      315   289      604
+No       304   293      597
+```
+
+- Seja $p_1$ a proporção de complicações para os pacientes 
+que tinham um grupo de oração.
+
+- Seja $p_2$ a proporção de complicações para os pacientes que 
+não tinham um grupo de oração.
+
+- Essas são proporções populacionais para a população conceitual que esse exemplo representa.
+
+- Da tabela anterior, as proporções amostrais ($\hat p_1$, $\hat p_2$) que 
+tiveram complicações são:
+
+$$
+\hat{p}_1 = \frac{315}{604} = 0,522, \,\, \hat{p}_2 = \frac{304}{597} = 0,509
+$$
+
+Agora podemos usar a linguagem R para obter um IC para a diferença entre 
+$p_1 - p_2$:
+
+```{r}
+# número total de pacientes no grupo de oração
+n1 <- 604
+
+# número de pacientes que tiveram complicações no grupo de oração
+x1 <- 315
+
+# número total de pacientes no grupo sem oração
+n2 <- 597
+
+# número de pacientes que tiveram complicações no grupo sem oração
+x2 <- 304
+
+# Intervalo para p1 - p2
+ic_oracao <- prop.test(x = c(x1, x2), n = c(n1, n2), conf.level = 0.95) 
+ic_oracao
+
+# Obtendo somente a estimativa por intervalo de confiança
+round(ic_oracao$conf.int, 2)
+```
+
+Reportando o resultado:
+
+- A diferença na proporção de pacientes que tiveram complicaçõs entre o 
+grupo de pacientes que contaram com um grupo de oração (52%) e o 
+grupo controle (51%) foi de 0,01 (IC 95% [-0.05, 0.07]), indicando que, com 
+95% de confiança, a verdadeira diferença na proporção de complicações entre 
+os grupos está entre -0.05 e 0,07.
+
+- Visto que o intervalo de confiança **contém zero**, os dados da pesquisa 
+fornecem evidência de que não há diferença estatisticamente significativa 
+na proporção de complicações entre os grupos.
+
+
+
+
+## Aplicação: Teste A/B
+
+### Teste de Duas Versões de Website
+
+**Cenário**: Comparar tempo médio de permanência entre 
+versão atual (A) e redesenhada (B).
+
+```{r}
+
+# cria dois vetores para os tempos de permanência
+versao_a <- c(3.2, 4.1, 2.8, 3.9, 3.5, 4.3, 2.9, 3.7, 4.0, 3.3,
+              2.6, 3.8, 4.2, 3.1, 3.6, 2.7, 4.5, 3.4, 2.5, 3.9)
+
+versao_b <- c(4.8, 5.2, 4.3, 5.6, 4.7, 5.1, 4.9, 5.4, 4.5, 5.0,
+              4.6, 5.3, 4.4, 5.7, 4.8, 5.5, 4.2, 5.8, 4.7, 5.2)
+
+# cria uma df para armazenar os dados
+dados_ab <- data.frame(
+  tempo = c(versao_a, versao_b),
+  grupo = c(rep("A", 20), rep("B", 20))
+)
+
+# visualizando os dados
+head(dados_ab)
+```
+
+
+```{r}
+# gráfico quantil-quantil (QQ) para verificar normalidade
+ggqqplot(dados_ab, x = "tempo", color = "grupo") +
+  labs(title = "Verificação de Normalidade por Grupo")
+```
+
+
+0 gráfico quantil-quantil (QQ) mostra que ambos os grupos 
+estão razoavelmente próximos de uma distribuição normal.
+
+```{r}
+# estimativa por ic para diferença das médias
+resultado_ab <- t.test(versao_b, versao_a, conf.level = 0.95)
+resultado_ab$conf.int
+```
+
+**Resultado**: IC 95% para (B - A) = [1.14, 1.83] minutos, como a estimativa 
+por intervalo de confiança para a diferença entre as médias **não contém** 
+zero, podemos concluir que a nova versão (B) é significativamente 
+melhor que a versão atual (A) em termos de tempo médio de permanência.
+
+**Conclusão**: Com 95% de confiança, a nova versão aumenta o tempo médio de permanência entre **1.14 e 1.83 minutos**.
+
+**Decisão**: Implementar Versão B em produção.
+
+
+
+## Aplicação 3
+
+### Estimação de Intervalo de Confiança para uma Média
+
+Você está conduzindo um estudo em para avaliar o impacto de um programa de 
+educação financeira na quantidade média de poupança mensal dos participantes. 
+O objetivo é determinar se o programa de educação financeira está 
+ajudando os participantes a poupar dinheiro a cada mês.
+
+Para isso, você coletou uma amostra aleatória de 30 participantes que 
+completaram o programa e registrou a quantidade que cada um deles conseguiu 
+poupar em um mês (em reais). Com esses dados, você deseja calcular o intervalo 
+de confiança de 95% para a média da poupança mensal dos participantes, o 
+que fornecerá uma estimativa da média de poupança que pode ser esperada na 
+população geral de participantes do programa. 
+
+Os dados produzidos no estudo foram:
+
+| participante | poupanca_mensal_reais |
+|--------------|-----------------------|
+| 1            | 150                   |
+| 2            | 200                   |
+| 3            | 180                   |
+| 4            | 220                   |
+| 5            | 190                   |
+| 6            | 170                   |
+| 7            | 210                   |
+| 8            | 230                   |
+| 9            | 160                   |
+| 10           | 200                   |
+| 11           | 180                   |
+| 12           | 175                   |
+| 13           | 190                   |
+| 14           | 210                   |
+| 15           | 185                   |
+| 16           | 165                   |
+| 17           | 220                   |
+| 18           | 195                   |
+| 19           | 205                   |
+| 20           | 215                   |
+| 21           | 190                   |
+| 22           | 200                   |
+| 23           | 185                   |
+| 24           | 180                   |
+| 25           | 210                   |
+| 26           | 195                   |
+| 27           | 175                   |
+| 28           | 170                   |
+| 29           | 200                   |
+| 30           | 190                   |
+
+
+- Armazenando os dados em uma data frame:
+
+```{r}
+# Carregar os dados simulados
+dados_programa <- data.frame(
+  participante = 1:30,
+  poupanca = c(150, 200, 180, 220, 190, 170, 210, 230, 160, 200,
+               180, 175, 190, 210, 185, 165, 220, 195, 205, 215,
+               190, 200, 185, 180, 210, 195, 175, 170, 200, 190)
+)
+
+dados_programa
+```
+
+- A primeira etapa é verificar se os dados seguem uma distribuicão 
+aproximadamente normal. Vamos verificar esta hipótese usando um 
+gráfico quantil-quantil, especificamente, podemos usar a função 
+ggqqplot do pacote ggpubr para produzir o gráfico.
+
+```{r}
+# Gráfico quantil-quantil dos dados
+ggqqplot(dados_programa, x = "poupanca") + 
+  xlab("quantis teóricos de uma distribuição normal padrão") + 
+  ylab("Quantidade Poupada")
+```
+
+O gráfico quantil-quantil mostre que é plausível considerar que os dados seguem 
+uma distribuição aproximadamente normal.
+
+Como as hipóteses necessárias para a validade de intervalos de 
+confiança para uma média foram verificadas, passamos à estimação 
+do intervalo de confiança:
+
+```{r}
+# estima o intervalo de confiança de 95% para a média das medições
+resultado <- t.test(dados_programa$poupanca, conf.level = 0.95)
+resultado
+```
+
+Exibe apenas a estimativa do IC:
+
+```{r}
+resultado <- resultado$conf.int
+resultado
+```
+
+
+Reportando o resultado:
+
+- A quantidade média poupada pelos participantes do programa de 
+educação financeira foi R$ 191,50 (IC 95% [184,38 198,62]). 
+
+- Como a estimativa por intervalo de confiança para a média da poupança mensal 
+não contém zero podemos concluir, com 95% de confiança, que os dados da 
+pesquisa fornecem evidência de que a participação no programa de educação financeira tem um impacto positivo na quantidade poupada mensalmente, sendo 
+que a quantidade média poupada pelos participantes varia entre 
+R\$ 184,38 e R\$ 198,62 por mês.
+
+
+
+
+## Aplicação 4
+
+### Estimação de Intervalo de Confiança para Comparar Duas Médias
+
+Você está conduzindo um experimento em Economia Comportamental para avaliar o 
+impacto de dois diferentes tipos de incentivo (monetário vs. não monetário) 
+na produtividade dos funcionários medida como unidades produzidas por 
+semana. 
+
+Você coletou uma amostra aleatória de funcionários e os dividiu em 
+dois grupos:
+
+- Grupo A (Incentivo Monetário)
+- Grupo B (Incentivo Não Monetário)
+
+Você mediu a produtividade dos funcionários (em unidades de produção por 
+semana) após a implementação dos incentivos. Os dados produzidos pelo 
+experimento foram: 
+
+| grupo | produtividade |
+|-------|---------------|
+| A     | 50            |
+| A     | 55            |
+| A     | 53            |
+| A     | 58            |
+| A     | 52            |
+| A     | 56            |
+| A     | 54            |
+| A     | 57            |
+| A     | 51            |
+| A     | 55            |
+| A     | 59            |
+| A     | 52            |
+| A     | 53            |
+| A     | 56            |
+| A     | 57            |
+| A     | 54            |
+| A     | 52            |
+| A     | 50            |
+| A     | 53            |
+| A     | 56            |
+| B     | 48            |
+| B     | 45            |
+| B     | 47            |
+| B     | 49            |
+| B     | 46            |
+| B     | 44            |
+| B     | 48            |
+| B     | 47            |
+| B     | 45            |
+| B     | 46            |
+| B     | 49            |
+| B     | 44            |
+| B     | 45            |
+| B     | 48            |
+| B     | 47            |
+| B     | 46            |
+| B     | 44            |
+| B     | 45            |
+| B     | 46            |
+| B     | 47            |
+
+- Qual tipo de incentivo apresentou o maior impacto na produtividade dos 
+funcionários?
+
+- Armazenando os dados em uma data frame:
+
+```{r}
+# cria data frame para armazenar os dados
+dados_incentivos <- data.frame(
+  grupo = c(rep("A", 20), rep("B", 20)),
+  produtividade = c(50, 55, 53, 58, 52, 56, 54, 57, 51, 55,
+                    59, 52, 53, 56, 57, 54, 52, 50, 53, 56,
+                    48, 45, 47, 49, 46, 44, 48, 47, 45, 46,
+                    49, 44, 45, 48, 47, 46, 44, 45, 46, 47)
+)
+
+# visualizando os dados
+dados_incentivos
+```
+
+- Novamente, vamos verificar se os dados, referentes aos dois 
+grupos do estudo, seguem uma distribuição aproximadamente normal utilizando 
+gráficos quantil-quantil:
+
+```{r}
+# Gráfico quantil-quantil normal dos dados
+ggqqplot(dados_incentivos, x = "produtividade", 
+         color = "grupo", 
+         palette = c("#00AFBB", "#E7B800")) 
+```
+
+Vê-se que os dados de ambos os grupos estão dentro da região de referência, 
+assim, é plausível considerar que os dados de ambos os 
+grupos seguem uma distribuição aproximadamente normal.
+
+A estimação de um intervalo de confiança para a diferença entre as médias dos
+dois grupos é obtida com:
+
+```{r}
+# estimativa por ic para diferença das médias
+resultado <- t.test(produtividade ~ grupo, 
+                    data = dados_incentivos, 
+                    conf.level = 0.95, 
+                    var.equal = FALSE)
+resultado
+```
+
+exibe apenas a estimativa do IC:
+
+```{r}
+resultado$conf.int
+```
+
+
+Reportando o Resultado: 
+
+- A estimativa do intervalo com 95% de confiança, com correção de Welch, para 
+a diferença entre as produtividades médias do grupo que recebeu incentivo 
+monetário (M = 54,15 unidades produzidas) e o grupo qque recebeu 
+incentivo não monetário (M = 46,30 unidades produzidas), 
+sugere que a diferença é positiva e estatisticamente significativa 
+(diferença = 7,85, IC 95% [6,46, 9,24], t(31,49) = 11,51).
+
+
+
+
+
+
+
+

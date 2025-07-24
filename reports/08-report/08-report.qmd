@@ -1,0 +1,1118 @@
+---
+title: "Introdução à Ciência de Dados"
+subtitle: "Aula 11"
+lang: pt-BR
+author: "Emily Arantes"
+format: 
+  html:
+    theme: cosmo
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+<style>
+body {
+  font-size: 13pt;
+  text-align: justify;
+}
+</style>
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# Cofigurações para exibicão de números
+options(
+  digits = 5, # número de casas decimais
+  scipen = 999 # desativa notação científica
+)
+
+# carrega pacotes
+library(here)
+library(tidyverse)
+library(triangulr)
+library(highcharter)
+library(tidyquant)
+library(patchwork)
+```
+
+
+
+# Simulação de Monte Carlo: Aplicações
+
+## Análise de Insolvência via Simulação de Monte Carlo
+
+### Fator de Insolvência de Kanitz
+
+**Origem:** Desenvolvido por Stephen Kanitz [@kanitz1978livro] 
+para empresas brasileiras.
+
+**Fórmula:**
+
+$$
+FI = 0,05A + 1,65B + 3,55C – 1,06D – 0,33E
+$$
+
+**Indicadores:**
+
+- $A =$ Rentabilidade do PL: lucro líquido / patrimônio líquido
+- $B =$ Liquidez Geral: (AC + RLP) / exigível total  
+- $C =$ Liquidez Seca: (AC - estoques) / passivo circulante
+- $D =$ Liquidez Corrente: ativo circulante / passivo circulante
+- $E =$ Grau de Endividamento: passivo total / patrimônio líquido
+
+**Interpretação:**
+
+- $FI > 0$: **Solvente** (baixo risco)
+- $-3 \leq FI \leq 0$: **"Penumbra"** (risco moderado)  
+- $FI < -3$: **Insolvente** (alto risco)
+
+**Por que simular?** Os indicadores financeiros têm incerteza. 
+A simulação quantifica o **risco de classificação incorreta**.
+
+
+
+Simulação em R:
+
+```{r}
+# ==================================================
+# Fator de Insolvência de Kanitz - Simulação em R
+# ==================================================
+
+# Fixa a semente para reprodutibilidade
+set.seed(2024)
+
+# Número de simulações
+n_simulacoes <- 100000
+
+# ==================================================
+# 1. CÁLCULO DETERMINÍSTICO (VALOR PONTUAL)
+# ==================================================
+
+# Calcular FI usando os valores modais (determinístico)
+fi_deterministico <- 0.05*0.15 + 1.65*1.60 + 3.55*0.90 - 1.06*4.50 - 0.33*5.00
+
+# ==================================================
+# 2. SIMULAÇÃO DE MONTE CARLO
+# ==================================================
+
+# Simular os indicadores financeiros com parâmetros dentro das funções rtri
+A <- rtri(n_simulacoes, 0.12, 0.20, 0.15)  # Rentabilidade do PL
+B <- rtri(n_simulacoes, 0.80, 2.80, 1.60)  # Liquidez Geral
+C <- rtri(n_simulacoes, 0.80, 1.00, 0.90)  # Liquidez Seca
+D <- rtri(n_simulacoes, 4.00, 5.30, 4.50)  # Liquidez Corrente
+E <- rtri(n_simulacoes, 3.50, 8.00, 5.00)  # Grau de Endividamento
+
+# Calcular o Fator de Insolvência para cada simulação
+FI <- 0.05*A + 1.65*B + 3.55*C - 1.06*D - 0.33*E
+
+# ==================================================
+# 3. RESULTADOS
+# ==================================================
+
+# Resultado determinístico
+cat("FI Determinístico:", fi_deterministico, "\n")
+
+# Resultados da simulação
+cat("FI Médio (simulação):", mean(FI), "\n")
+cat("Probabilidade de Solvência:", mean(FI > 0)*100, "%\n")
+cat("Probabilidade de Penumbra:", mean(FI >= -3 & FI <= 0)*100, "%\n")
+cat("Probabilidade de Insolvência:", mean(FI < -3)*100, "%\n")
+```
+
+
+
+
+## Análise de Viabilidade sob Incerteza 
+
+- VPL Determinístico vs. Simulação - Cenário Base
+
+**Parâmetros do Projeto (Valores Mais Prováveis):**
+
+- **Investimento inicial**: R$ 75.000 (ponto médio: 65.000 - 85.000)
+- **Receitas anuais**: R$ 14.000 (ponto médio: 12.000 - 16.000)  
+- **Duração**: 10 anos (valor modal da triangular: 9 - 11 anos)
+- **Taxa de desconto**: 13% a.a. (valor modal da triangular: 10% - 15%)
+- **Valor residual**: R$ 5.000 (valor modal da triangular: 4.000 - 6.000)
+
+**Cálculo do VPL Determinístico:**
+
+```{r}
+# Parâmetros determinísticos (valores modais)
+investimento_det <- 75000
+receita_anual_det <- 14000
+duracao_det <- 10
+taxa_desconto_det <- 0.13
+valor_residual_det <- 5000
+
+# Cálculo do VPL usando a fórmula padrão
+# VPL = ∑[Receitas/(1+r)^t] + Valor_Residual/(1+r)^n - Investimento_Inicial
+
+# Fluxos de receitas descontados
+vpl_receitas_det <- sum(receita_anual_det / (1 + taxa_desconto_det)^(1:duracao_det))
+
+# Valor residual descontado
+vpl_residual_det <- valor_residual_det / (1 + taxa_desconto_det)^duracao_det
+
+# VPL final
+vpl_deterministico <- vpl_receitas_det + vpl_residual_det - investimento_det
+
+# Resultados com formatação brasileira
+cat("VPL das receitas:", format(round(vpl_receitas_det, 0), big.mark = ".", decimal.mark = ","), "reais\n")
+cat("VPL do valor residual:", format(round(vpl_residual_det, 0), big.mark = ".", decimal.mark = ","), "reais\n")
+cat("VPL total (determinístico):", format(round(vpl_deterministico, 0), big.mark = ".", decimal.mark = ","), "reais\n")
+
+# Decisão baseada no VPL determinístico
+if (vpl_deterministico > 0) {
+  cat("Decisão: Projeto VIÁVEL (VPL > 0)\n")
+} else {
+  cat("Decisão: Projeto INVIÁVEL (VPL ≤ 0)\n")
+}
+```
+
+**Limitações da Análise Determinística:**
+
+- **Ignora incerteza**: Usa apenas valores pontuais, sem 
+considerar variabilidade
+
+- **Decisão binária**: Resultado único não quantifica probabilidade de erro
+
+- **Subestima risco**: Não mostra amplitude de cenários possíveis
+
+-  **Informação limitada**: Não informa sobre distribuição de resultados
+
+**Próximo Passo:** 
+
+A **Simulação de Monte Carlo** captura toda essa incerteza, 
+fornecendo uma **avaliação probabilística completa** do risco do projeto.
+
+
+
+Simulação de VPL - Código Comentado 
+
+```{r}
+# Configuração inicial para reprodutibilidade
+set.seed(567)
+n_sim <- 100000  # 100 mil simulações
+
+# PASSO 1: Simula as variáveis/inputs do VPL
+invest_rec <- runif(n_sim, 65000, 85000)    # Investimento inicial (uniforme)
+residual   <- rtri(n_sim, 4000, 6000, 5000)   # Valor residual (triangular)
+tempo      <- round(rtri(n_sim, 9, 11, 10))   # Duração em anos (triangular)
+taxa       <- rtri(n_sim, 0.10, 0.15, 0.13)  # Taxa de desconto (triangular)
+
+# PASSO 2: simula as receitas e calcula VPL
+vpl_sim <- sapply(seq_len(n_sim), function(i) {
+  
+  # Gera receitas aleatórias para o projeto i 
+  receitas <- runif(tempo[i], 12000, 16000)
+  
+  # Calcula VPL dos fluxos de receitas descontados
+  vpl_fluxos <- sum(receitas / (1 + taxa[i])^(1:tempo[i]))
+  
+  # VPL total = fluxos + valor residual - investimento inicial
+  vpl_total <- vpl_fluxos + residual[i]/(1 + taxa[i])^tempo[i] - invest_rec[i]
+  
+  return(vpl_total)  # retorna VPL do projeto i
+})
+
+
+# VPL simulado mediano
+vpl_mediano <- median(vpl_sim)  # Mediana dos VPLs simulados
+vpl_mediano
+
+# Estimativa da Probabilidade de Viabilidade
+prob_viavel <- mean(vpl_sim > 0) * 100  # % de projetos com VPL > 0
+prob_viavel
+
+# Estimativa da Probabilidade de Inviabilidade
+prob_inviavel <- mean(vpl_sim <= 0) * 100  # % de projetos com VPL ≤ 0
+prob_inviavel
+```
+
+**Por que esse código é assim?**
+
+- **Linha 5-9**: Cada projeto tem características **fixas**
+ (duração, taxa, etc.)
+ 
+- **Linha 12**: `sapply()` processa cada projeto **individualmente**
+
+- **Linha 15**: Receitas são **diferentes para cada projeto** 
+(tamanho varia com `tempo[i]`)
+
+- **Linha 18**: Fórmula padrão do VPL aplicada ao projeto `i`
+
+**Resultado**: Vetor `vpl_sim` com 100.000 VPLs simulados prontos 
+para análise.
+
+
+
+
+
+## Aplicação: Gestão de Capital de Giro no Agronegócio
+
+
+**Importância Econômica:**
+
+- Agronegócio representa **parcela significativa do PIB brasileiro**
+
+- Soja: uma das principais commodities de exportação
+
+- Produção com **características sazonais**: descasamento temporal 
+entre custos e receitas
+
+**Características do Ciclo Financeiro:**
+
+- **Desembolsos concentrados**: período de plantio (insumos, maquinário)
+- **Receitas concentradas**: período de colheita e comercialização
+- **Déficit de caixa temporário**: meses entre investimento e retorno
+
+**Principais Incertezas:**
+
+- **Produtividade**: fatores climáticos, fitossanitários, qualidade do solo
+- **Preços**: volatilidade dos mercados internacionais de commodities
+- **Custos de insumos**: fertilizantes, defensivos, combustível
+- **Taxa de câmbio**: impacta custos (importações) e receitas (exportações)
+
+**Problema Gerencial:**
+
+Qual o **capital de giro necessário** para atravessar o ciclo 
+produtivo sem comprometer a operação?
+
+**Relevância da Simulação:**
+
+- Métodos determinísticos podem **subestimar** necessidades de capital
+- Monte Carlo permite capturar **interações entre múltiplas variáveis incertas**
+- Possibilita **quantificar probabilidades** de diferentes cenários
+
+**Nota**: Os parâmetros utilizados neste exemplo são **ilustrativos** 
+para fins didáticos apenas.
+
+
+
+## Modelagem: Fluxo de Caixa da Safra de Soja
+
+
+**Fazenda Hipotética:**
+
+- **Área**: 2.000 hectares
+- **Ciclo**: Janeiro (plantio) → Outubro (colheita/venda)
+- **Custo total**: R$ 4.000/hectare
+
+**Cronograma de Desembolsos (% do custo total - exemplo típico):**
+
+| Mês | Jan | Fev | Mar | Abr | Mai | Jun | Jul | Ago | Set | Out |
+|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|-----|
+| % Custo | 10% | 25% | 20% | 10% | 5% | 5% | 5% | 5% | 5% | 10% |
+
+**Nota**: Os 10% em outubro representam custos de colheita, transporte 
+e comercialização.
+
+**Receitas:**
+
+- **Venda antecipada** (janeiro): 30% da produção a preço forward (desconto 5%)
+- **Venda spot** (outubro): 70% da produção restante
+
+**Parâmetros Incertos (para fins didáticos):**
+
+| Variável          | Mínimo  | Moda   | Máximo | Unidade   |
+|-------------------|---------|--------|--------|-----------|
+| **Produtividade** | 45      | 60     | 75     | sacas/ha  |
+| **Preço spot**    | 70      | 85     | 100    | R\$/saca   |
+| **Custo/hectare** | 3.500   | 4.000  | 4.500  | R\$/ha     |
+
+**Correlação Assumida:**
+
+- Produtividade × Preço: -0.30 (hipótese: anos de baixa produção 
+→ preços mais altos)
+
+**Objetivo da Simulação:**
+
+Estimar a **distribuição do Déficit Máximo (Necessidade de Capital de Giro)**  
+
+$$
+\text{Déficit máximo} = -\min_t\bigl(\mathrm{SA}_t\bigr)
+$$
+
+➜ *Simulação de Monte Carlo (MC)*  
+
+&nbsp;&nbsp;&nbsp;&nbsp;• 20 000 cenários de **produtividade, preço** 
+(correlação –0,30) e **custo**  
+&nbsp;&nbsp;&nbsp;&nbsp;• Resultado: **curva de probabilidade** da 
+necessidade de caixa ao longo do ciclo
+
+**Metodologia:**
+
+- A metodologia de simulação segue as diretrizes de @hardaker2004 
+para gestão de risco agrícola e implementa os procedimentos de 
+@richardson2000 para simulação Monte Carlo no agronegócio.
+
+** Importante**: Todos os parâmetros são **ilustrativos**. Em aplicações
+reais, devem ser calibrados com dados históricos específicos da região 
+e cultura.
+
+
+
+
+
+## Simulação de Monte Carlo: Código R
+
+Implementação da Simulação"
+
+```{r}
+# Parâmetros da fazenda hipotética
+set.seed(123)
+area_ha <- 2000
+n_sim <- 20000
+
+# Cronograma de desembolsos (% do custo total por mês)
+cronograma_custos <- c(0.10, 0.25, 0.20, 0.10, 0.05, 0.05, 0.05, 0.05, 0.05, 0.10)
+
+# Parâmetros de comercialização
+venda_antecipada <- 0.30 # 30% vendido antecipadamente
+desconto_forward <- 0.95 # preço forward = 95% do spot
+
+# Função para simular um cenário
+simula_safra <- function() {
+  # Simula parâmetros incertos (distribuições triangulares)
+  produtividade <- rtri(1, 45, 75, 60) # sacas/ha
+  custo_ha <- rtri(1, 3500, 4500, 4000) # R$/ha
+  
+  # Gerar preço base
+  preco_base <- rtri(1, 70, 100, 85) # R$/saca
+  
+  # Aplicar correlação negativa de -0.30 entre produtividade e preço
+  # Normalizar produtividade em torno da média
+  prod_media <- 60
+  prod_desvio <- 15 # (75-45)/2
+  prod_padronizada <- (produtividade - prod_media) / prod_desvio
+  
+  # Ajustar preço baseado na correlação
+  preco_desvio <- 15 # (100-70)/2
+  ajuste_correlacao <- -0.30 * prod_padronizada * preco_desvio
+  preco_spot <- preco_base + ajuste_correlacao
+  
+  # Garantir que o preço permaneça dentro dos limites
+  preco_spot <- pmax(70, pmin(100, preco_spot))
+  
+  # Calcula fluxos mensais
+  custos_mensais <- cronograma_custos * custo_ha * area_ha
+  
+  # Receitas (concentradas em janeiro e outubro)
+  receitas <- rep(0, 10)
+  receitas[1] <- venda_antecipada * produtividade * area_ha * preco_spot * desconto_forward
+  receitas[10] <- (1 - venda_antecipada) * produtividade * area_ha * preco_spot
+  
+  # Fluxo de caixa acumulado
+  fluxo_liquido <- receitas - custos_mensais
+  saldo_acumulado <- cumsum(fluxo_liquido)
+  
+  # Retorna métricas de interesse
+  data.frame(
+    deficit_maximo = -min(saldo_acumulado), # maior déficit no período (sempre positivo)
+    lucro_final = saldo_acumulado[10],      # resultado final
+    produtividade = produtividade,
+    preco_final = preco_spot
+  )
+}
+
+# Executa simulação Monte Carlo
+resultados <- do.call(rbind, lapply(1:n_sim, function(x) simula_safra()))
+
+# Verificar correlação obtida
+correlacao_simulada <- cor(resultados$produtividade, resultados$preco_final)
+cat("Correlação obtida:", round(correlacao_simulada, 3), "(alvo: -0.30)\n")
+
+# Exibe resumo básico como data frame
+resumo_basico <- data.frame(
+  Métrica = c("Déficit máximo médio", "Maior déficit simulado", "Lucro médio esperado"),
+  Valor_Mil_Reais = c(
+    round(mean(resultados$deficit_maximo) / 1000),
+    round(max(resultados$deficit_maximo) / 1000),
+    round(mean(resultados$lucro_final) / 1000)
+  )
+)
+
+# Exibe o resumo básico
+resumo_basico
+```
+
+
+
+## Resultados da Simulação: Necessidade de Capital de Giro
+
+Análise dos Resultados
+
+```{r}
+# A variável deficit_maximo já está em valores positivos (em reais)
+# Converte para milhões para facilitar a leitura
+necessidade_capital <- resultados$deficit_maximo / 1000000  # em milhões
+
+# ========================================
+# VALIDAÇÃO DO MODELO
+# ========================================
+correlacao_simulada <- cor(resultados$produtividade, resultados$preco_final)
+cat("Correlação obtida entre produtividade e preço:", 
+    round(correlacao_simulada, 3), "\n")
+```
+
+
+```{r}
+# ========================================
+# ESTATÍSTICAS DESCRITIVAS
+# ========================================
+estatisticas_basicas <- data.frame(
+  Métrica = c("Necessidade média", "Necessidade máxima", "Desvio-padrão"),
+  Valor_Milhoes_R = c(
+    round(mean(necessidade_capital), 1),
+    round(max(necessidade_capital), 1),
+    round(sd(necessidade_capital), 1)
+  )
+)
+
+# Exibe as estatísticas básicas
+estatisticas_basicas
+```
+
+
+```{r}
+# ========================================
+# PERCENTIS PARA PLANEJAMENTO
+# ========================================
+percentis <- quantile(necessidade_capital, probs = c(0.50, 0.75, 0.90, 0.95))
+tabela_percentis <- data.frame(
+  Percentil = c("50%", "75%", "90%", "95%"),
+  Cenarios_Cobertos = c("50% dos cenários", "75% dos cenários", 
+                        "90% dos cenários", "95% dos cenários"),
+  Necessidade_Milhoes_R = round(percentis, 1)
+)
+print(tabela_percentis)
+```
+
+```{r}
+# ========================================
+# PROBABILIDADES
+# ========================================
+probabilidades_risco <- data.frame(
+  Limite_Milhoes_R = c(1, 2, 3),
+  Probabilidade_Exceder_Pct = c(
+    round(mean(necessidade_capital > 1) * 100, 1),
+    round(mean(necessidade_capital > 2) * 100, 1),
+    round(mean(necessidade_capital > 3) * 100, 1)
+  )
+)
+
+# Exibe as probabilidades 
+probabilidades_risco
+```
+
+
+**💡 Interpretação para Administradores:**
+
+- **Planejamento Conservador**: Use o percentil 95% para garantir cobertura 
+na maioria dos cenários
+
+- **Gestão de Risco**: Monitore as probabilidades de necessidades 
+extremas (> R$ 2-3 milhões)
+
+- **Estratégias Financeiras**: Combine linha de crédito + reservas 
+para otimizar custo de capital
+
+
+
+
+
+## Decisões Estratégicas Baseadas na Simulação
+
+```{r}
+# Calcula métricas para dimensionamento
+necessidade_media <- mean(necessidade_capital)
+necessidade_p95 <- quantile(necessidade_capital, 0.95)
+necessidade_max <- max(necessidade_capital)
+
+# Resumo executivo para tomada de decisão
+resumo_executivo <- data.frame(
+  Cenario = c("Cenário Base", "Cenário Conservador", "Cenário Stress"),
+  Descrição = c("Necessidade média", "Percentil 95%", "Pior caso simulado"),
+  Necessidade_Milhoes_R = c(
+    round(necessidade_media, 1),
+    round(necessidade_p95, 1),
+    round(necessidade_max, 1)
+  ),
+  Uso_Recomendado = c(
+    "Orçamento inicial",
+    "Linha de crédito",
+    "Reserva de contingência"
+  )
+)
+
+# exibe o resumo 
+resumo_executivo
+```
+
+
+
+
+
+## Exercício 1
+
+- Simulação do Índice de Liquidez Rápida
+
+O **Índice de Liquidez Rápida (ILR)** mede a capacidade de uma empresa 
+pagar suas obrigações de curto prazo sem depender da venda de estoques:
+
+$$
+\text{ILR} = \frac{\text{Ativo Circulante} - \text{Estoques}}{\text{Passivo Circulante}}
+$$
+
+**Cenário**: Você é analista financeiro de uma empresa do setor de varejo 
+e precisa avaliar o risco de liquidez sob incerteza.
+
+**Informações dos especialistas** (baseadas em dados setoriais):
+
+- **Ativo Circulante**: entre R\$ 800 mil e R\$ 1.200 mil (mais provável: R\$ 950 mil)
+- **Estoques**: entre R\$ 200 mil e R\$ 400 mil (mais provável: R\$ 280 mil)  
+- **Passivo Circulante**: entre R\$ 600 mil e R\$ 900 mil (mais provável: R\$ 720 mil)
+
+**Suas tarefas**:
+
+1. **Simule 20.000 cenários** do ILR usando Monte Carlo com distribuições 
+    triangulares
+    
+2. **Calcule $P(\text{ILR} < 1)$** e interprete o resultado
+
+3. **Compare** o ILR médio simulado com o modelo determinístico 
+(valores mais prováveis)
+
+4. **Recomende ações** se a probabilidade de ILR < 1 for maior que 40%
+
+**Código estrutura** (complete o código):
+
+```{r}
+#| eval: false
+
+# fixa a semente para reprodutibilidade
+set.seed(2024)
+
+# Define o número de simulações
+n_sim <- 20000
+
+# Complete os parâmetros (min, max, moda)
+ativo_circ <- rtri(n_sim, ___, ___, ___)
+estoques   <- rtri(n_sim, ___, ___, ___)
+passivo_circ <- rtri(n_sim, ___, ___, ___)
+
+# Calcule o ILR
+ilr_sim <- (ativo_circ - estoques) / passivo_circ
+
+# Complete as análises
+prob_ilr_baixo <- mean(ilr_sim < 1) * 100
+ilr_medio <- mean(ilr_sim)
+
+# Modelo determinístico para comparação
+ilr_deterministico <- (950 - 280) / 720
+
+# Exiba os resultados
+cat("Probabilidade ILR < 1:", round(prob_ilr_baixo, 1), "%\n")
+cat("ILR médio simulado:", round(ilr_medio, 2), "\n")
+cat("ILR determinístico:", round(ilr_deterministico, 2), "\n")
+```
+
+**Perguntas**:
+
+1. Qual a probabilidade de ILR < 1? Como interpreta esse risco?
+
+
+2. Por que o ILR médio simulado é próximo ao determinístico?
+
+
+3. Que ações recomendaria se P(ILR < 1) > 40%?
+
+
+
+
+
+# Pacote tidyquant, Séries de Preços e de Retornos de Ações
+
+## Exemplo 1 - Função `tq_get()`
+
+Importação de Séries de Preços Diários de 2 Ações
+
+```{r}
+# salva as séries importadas no objeto serie_bivariada
+serie_bivariada <- c("AAPL", "META") %>% 
+  # obtem os dados de fechamento das ações a partir de 01/01/2024
+  tq_get(from = "2024-01-01") %>%
+  # seleciona as colunas relevantes
+  select(symbol, date, close) %>%
+  # renomeia as colunas para facilitar a leitura
+  rename(
+    companhia = symbol,
+    dia = date,
+    preco_fechamento = close
+  )
+```
+
+
+```{r}
+# Exibe as 6 primeiras linhas da data frame
+head(serie_bivariada)
+```
+
+
+```{r}
+# Exibe as 6 últimas linhas da data frame
+tail(serie_bivariada)
+```
+
+
+
+## Preparação de Dados: pivot_wider()
+
+A função `pivot_wider()` transforma dados do formato longo para o 
+formato largo (*wide*),.
+
+**Por que precisamos transformar?**
+
+Para estimar a correlação entre as séries de preços de duas ações, precisamos 
+que cada série de preços seja uma coluna separada, com as datas alinhadas, 
+entretanto, a função tq_get() retorna os dados no formato longo, onde cada 
+linha representa um preço de uma ação em uma data específica, ou seja, 
+as séries de preços estão empilhadas verticalmente.
+
+**Formato Longo** (estrutura retornada pela função `tq_get()`):
+
+```{r}
+dados_longo <- 
+tibble(
+  empresa = c("PETR4.SA", "PETR4.SA", "ITUB4.SA", "ITUB4.SA"),
+  data = as.Date(c("2024-01-02", "2024-01-03", "2024-01-02", "2024-01-03")),
+  preco = c(35.50, 36.20, 28.30, 28.75)
+)
+
+dados_longo
+```
+
+**Formato Largo**:
+
+```{r}
+dados_wide <- 
+tibble(
+  data = as.Date(c("2024-01-02", "2024-01-03")),
+  PETR4.SA = c(35.50, 36.20),
+  ITUB4.SA = c(28.30, 28.75)
+) 
+
+dados_wide
+```
+
+**Sintaxe**:
+
+```{r}
+dados_wide <- dados_longo %>%
+  pivot_wider(
+    names_from = empresa,    # variável que será nomes de colunas
+    values_from = preco      # variável com os valores
+  )
+  
+dados_wide
+```
+
+
+
+## Exemplo 2 - Função `tq_get()`
+
+Importação de 3 Séries de Preços Diários de Ações:
+
+```{r}
+
+serie_precos <- c("PETR4.SA", "MGLU3.SA", "ITUB4.SA") %>% 
+  # importa as séries de preços as ações: PETR4, MGLU3 e ITUB4
+  tq_get(from = "2024-01-01") %>% 
+  # seleciona as variáveis relevantes
+  select(symbol, date, close) %>%
+  # converte o formato longo para o formato largo
+  pivot_wider(names_from = symbol, values_from = close) %>% 
+  # renomeia as variáveis
+  rename(dia = date,
+         petr4 = PETR4.SA, 
+         mglu3 = MGLU3.SA, 
+         itub4 = ITUB4.SA) 
+
+
+# exibe as primeiras linhas
+head(serie_precos)
+```
+
+
+
+## Gráficos: Preços x Retornos - Petrobrás
+
+```{r}
+#| echo: false
+
+# extrair a serie de preços da petrobrás do objeto serie_precos
+serie_petrobras <- serie_precos %>% 
+  select(dia, petr4)
+
+# calcular os retornos simples com mutate 
+serie_petrobras <- serie_petrobras %>% 
+  mutate(retorno_simples = (petr4 - lag(petr4)) / lag(petr4))
+
+# construir os gráficos de preços e retornos e organizá-los com patchwork
+grafico_precos <- serie_petrobras %>% 
+  ggplot(aes(x = dia, y = petr4)) +
+  geom_line(color = "blue") +
+  labs(title = "Série de Preços da Petrobrás",
+       x = "Data", y = "Preço (R$)") +
+  theme_minimal()
+
+grafico_retornos <- serie_petrobras %>%
+  ggplot(aes(x = dia, y = retorno_simples)) +
+  geom_line(color = "red") +
+  labs(title = "Série de Retornos Simples da Petrobrás",
+       x = "Data", y = "Retorno Simples") +
+  theme_minimal()
+
+# Organiza os gráficos com patchwork
+grafico_precos / grafico_retornos 
+```
+
+
+
+
+
+# Aplicação - Valor-em-Risco (VaR) 
+
+## VaR Paramétrico (Normal)
+
+**Exemplo 2**:
+
+Se foram investidos R\$ 100.000,00 em ações da XYZ SA, cuja volatilidade 
+diária ($\sigma$ = desvio-padão) é de 2% e o retorno médio de 0%. 
+Assumindo que os retornos da ação possam ser modelados por uma 
+distribuição normal. então, o VaR no nível de 5% é:
+
+Em R:
+
+```{r}
+#| echo: true
+sigma <- 0.02
+valor_carteira <- 100000
+p <- 0.05
+
+var_95 <- sigma*qnorm(1-p)*valor_carteira
+var_95
+```
+
+Isto é, o $VaR_{1, 0.95}$ de 1-dia = R\$ 3.289,71 implica que temos 95% de 
+confiança de que a perda da carteira não será superior a R\$ 3.289,80 em um 
+dia, ou que temos 5% de chance de que a perda será superior a R\$ 3.289,80.
+
+
+
+
+
+## VaR Paramétrico Normal em R 
+
+Estimativa do VaR Paramétrico Normal - 1 Ação:
+
+```{r}
+# pipeline para importar os preços da ação da Petrobras
+# calcular os retornos e remover valores ausentes
+serie_precos_petr4 <- tq_get("PETR4.SA", from = "2024-01-01") %>%
+  mutate(ret = log(close / lag(close))) %>%
+  drop_na()
+
+# Define parâmetros
+retornos <- serie_precos_petr4$ret
+valor_carteira <- 1000
+p <- 0.01
+
+# calcula o retorno médio 
+ret_medio <- mean(retornos)
+ret_medio
+
+# calcula a volatilidade (desvio padrão)
+volatilidade <- sd(retornos)
+volatilidade
+
+# VaR paramétrico
+var_param <- -(ret_medio + qnorm(1 - p) * volatilidade)
+var_param
+
+# VaR percentual
+var_percentual <- var_param * 100
+var_percentual
+
+# VaR paramétrico monetário
+var_monetario <- var_param * valor_carteira
+var_monetario
+```
+
+
+
+
+## VaR - Método Histórico
+
+
+### Método Histórico em R
+
+Estimativa do VaR Histórico - 1 Ação:
+
+```{r}
+# pipeline para importar os preços da ação da Petrobras
+# calcular os retornos e remover valores ausentes
+precos_petrobras <- "PETR4.SA" %>%
+  tq_get(from = "2024-01-01") %>%
+  select(date, close) %>% 
+  mutate(ret_petrobras = log(close / lag(close))) %>% 
+  drop_na()
+
+# Extrai vetor de retornos
+ret_petrobras <- precos_petrobras %>% 
+  pull(ret_petrobras)
+
+# Parâmetros
+valor_carteira <- 1000
+p <- 0.01
+
+# Estimação do VaR
+
+# 1. Ordena os retornos crescentemente
+ret_petr_ord <- sort(ret_petrobras)
+
+# 2. Encontra o índice correspondente ao quantil de nível p
+#    Isto é, o retorno que define a cauda esquerda com p% de probabilidade
+#    ceiling() é usada para garantir que pegamos um valor suficientemente extremo
+op <- ceiling(length(ret_petr_ord) * p)  
+op
+
+# 3. VaR histórico monetário: valor correspondente ao retorno mais severo
+var_petr_hs <- -ret_petr_ord[op] * valor_carteira
+var_petr_hs
+
+# 4. VaR histórico percentual
+var_percentual_petr_hs <- -ret_petr_ord[op] * 100
+var_percentual_petr_hs
+```
+
+- Usamos `ceiling()` para garantir que selecionamos um retorno 
+que está entre os **p% piores casos**. Por exemplo, com $T = 252$ e 
+$p = 0{,}01$, temos $T \cdot p = 2{,}52$, e o índice $i = 3$. 
+
+- Assim, usamos o **terceiro pior retorno** da amostra. Isso garante que 
+estamos sendo **conservadores**, pois não usamos interpolação — pegamos 
+o pior valor inteiro que garante cobertura de pelo menos $p$ da densidade 
+empírica.
+
+
+
+
+## VaR - Método por Simulação de Monte Carlo
+
+Código - Estimativa do VaR por Simulação Não-Paramétrica:
+
+```{r}
+# pipeline para importar os preços da ação da Petrobras
+# calcular os retornos e remover valores ausentes
+precos_petrobras <- "PETR4.SA" %>%
+  tq_get(from = "2024-01-01") %>%
+  select(date, close) %>%
+  mutate(ret_petrobras = log(close / lag(close))) %>%
+  drop_na()
+
+# Extrai os retornos
+ret_petrobras <- precos_petrobras$ret_petrobras
+
+# Define parâmetros
+valor_carteira <- 1000     # valor investido em reais
+p <- 0.01                  # nível de significância (1%)
+n <- 1000                  # número de simulações
+
+# Simulação de Monte Carlo (não-paramétrica)
+set.seed(123)
+ret_simulados <- sample(ret_petrobras, size = n, replace = TRUE)
+
+# Ordena os retornos simulados
+ret_simulados_ord <- sort(ret_simulados)
+
+# Encontra o índice do quantil
+# Usamos ceiling() para garantir uma estimativa conservadora (valor mais extremo)
+indice_var <- ceiling(n * p)
+
+# Estima o VaR monetário
+var_petr_mc <- -ret_simulados_ord[indice_var] * valor_carteira
+var_petr_mc
+
+# Estima o VaR percentual
+var_percentual_petr_mc <- -ret_simulados_ord[indice_var] * 100
+var_percentual_petr_mc
+```
+
+
+
+
+## Estimação Empírica do ES
+
+PETR4 — Estimativa Empírica do ES:
+
+```{r}
+# 1. Parâmetros
+p <- 0.01
+valor_carteira <- 1000
+
+# 2. Ordena os retornos da PETR4
+retornos_ordenados <- sort(ret_petrobras)
+
+# 3. Índice do quantil
+k <- ceiling(length(retornos_ordenados) * p)
+
+# 4. VaR e ES empíricos (percentuais)
+var_percentual <- -retornos_ordenados[k] * 100
+es_percentual <- -mean(retornos_ordenados[1:k]) * 100
+
+# 5. Valores monetários
+var_monetario <- var_percentual / 100 * valor_carteira
+es_monetario <- es_percentual / 100 * valor_carteira
+
+# Resultados
+var_monetario
+es_monetario
+```
+
+
+
+
+
+## Retornos da Carteira em R
+
+Implementação em R:
+
+```{r}
+# Importa as séries de preços das ações
+serie_precos <- c("PETR4.SA", "MGLU3.SA", "ITUB4.SA") %>% 
+  tq_get(from = "2024-01-01") %>%
+  select(symbol, date, close) %>%
+  pivot_wider(names_from = symbol, values_from = close) %>%
+  rename(dia = date,
+         petr4 = PETR4.SA,
+         mglu3 = MGLU3.SA,
+         itub4 = ITUB4.SA)
+
+# Calcula retornos logarítmicos
+retornos <- serie_precos %>%
+  mutate(
+    ret_petr4 = log(petr4 / lag(petr4)),
+    ret_mglu3 = log(mglu3 / lag(mglu3)),
+    ret_itub4 = log(itub4 / lag(itub4))
+  ) %>%
+  drop_na()
+
+# Define os pesos
+pesos <- c(0.4, 0.3, 0.3)  # exemplo: 40% PETR4, 30% MGLU3, 30% ITUB4
+
+# Calcula o retorno da carteira
+retornos <- retornos %>%
+  mutate(
+    ret_carteira = pesos[1] * ret_petr4 +
+                   pesos[2] * ret_mglu3 +
+                   pesos[3] * ret_itub4
+  )
+```
+
+
+dimensão do vertor de retornos da carteira:
+
+```{r}
+dim(retornos$ret_carteira)
+```
+
+
+```{r}
+# exibie as primeiras linhas
+head(retornos$ret_carteira)
+```
+
+
+
+
+
+## VaR Histórico da Carteira
+
+Estimativa do VaR — Método Histórico
+
+```{r}
+# Parâmetros
+p <- 0.01
+valor_carteira <- 1000
+
+# Ordena retornos da carteira
+ret_ordenado <- sort(retornos$ret_carteira)
+
+# Índice do quantil
+k <- ceiling(length(ret_ordenado) * p)
+
+# VaR percentual e monetário
+var_percentual <- -ret_ordenado[k] * 100
+var_monetario <- -ret_ordenado[k] * valor_carteira
+
+var_percentual
+var_monetario
+```
+
+
+
+## Estimativa do Expected Shortfall (ES)
+
+
+Estimativa do ES:
+
+```{r}
+# Expected Shortfall (ES)
+es_percentual <- -mean(ret_ordenado[1:k]) * 100
+es_monetario <- -mean(ret_ordenado[1:k]) * valor_carteira
+
+es_percentual
+es_monetario
+```
+
+- O **Expected Shortfall** é a **média das perdas mais severas**, 
+ou seja:
+
+$$
+ES = - \frac{1}{k} \sum_{i=1}^{k} r^{(i)}
+$$
+
+- O ES sempre **excede (em magnitude)** o VaR — é mais conservador.
+
+
+
+
+
+## Exercício 
+
+Você é o analisata responsável por estimar o risco de uma carteira de 
+investimentos formada exclusivamente pelas ações da empresa **Vale S.A. (VALE3.SA)**, usando dados reais do mercado de capitais.
+
+1. Usando o pacote `tidyquant`, importe os preços de fechamento 
+diários da ação **VALE3.SA**, a partir de **01/01/2024**.
+
+2. Calcule os **retornos logarítmicos diários** da ação.
+
+3. Suponha que o valor da carteira seja de **R$ 5.000**.
+
+4. Estime o **Value-at-Risk (VaR)** e o **Expected Shortfall (ES)** 
+para a carteira, no nível de probabilidade de **5%**, utilizando 
+o **método histórico**.
+
+5. Interprete os valores obtidos: o que eles indicam sobre o risco 
+da carteira?
+
+

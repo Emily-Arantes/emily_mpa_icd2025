@@ -1,0 +1,368 @@
+---
+title: "Introdução à Ciência de Dados"
+subtitle: "Aula 14"
+lang: pt-BR
+author: "Seu Nome"
+format: 
+  html:
+    theme: flatly
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+<style>
+body {
+  font-size: 12pt;
+  text-align: justify;
+}
+</style>
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# Cofigurações para exibicão de números
+options(
+  digits = 5, # número de casas decimais
+  scipen = 999 # desativa notação científica
+)
+
+# carrega os pacotes necessários
+library(tidyverse)
+library(effectsize)
+library(pwr)
+```
+
+
+# Testes de Significância 
+
+
+## Exercício 1
+
+- Uma rede de supermercados em Formiga seleciona periodicamente 
+funcionários para receber treinamento em gestão.
+
+- Um grupo de funcionárias afirmou recentemente que a empresa seleciona 
+homens a uma taxa desproporcionalmente alta para este treinamento. A empresa 
+negou essa alegação. 
+
+- Nos últimos anos, alegações semelhantes de discriminação contra as 
+mulheres foram feitas sobre promoções e salários para mulheres que 
+trabalham para várias empresas.
+
+- Suponha que o grupo potencial de funcionários para treinamento em gestão 
+seja grande e tenha 40% de homens e 60% de mulheres.
+
+- A alegação da empresa de ausência de discriminação é uma hipótese 
+de que, outras coisas sendo iguais, a cada escolha, a probabilidade de 
+selecionar um homem é igual a 0,40 e a probabilidade de selecionar uma mulher 
+é igual a 0,60.
+
+- A alegação das mulheres é uma hipótese alternativa de que a probabilidade 
+de selecionar um homem excede 0,40.
+
+- Suponha que na última seleção de funcionários para treinamento em 
+gestão, 9 dos 10 escolhidos eram homens. Nesse caso, podemos ficar 
+inclinados a acreditar na alegação das mulheres.
+
+- No entanto, devido à **variabilidade da amostragem**, mesmo se selecionados 
+aleatoriamente do grupo de funcionários, não exatamente 40% dos escolhidos 
+precisam ser homens, e talvez 9 homens de 10 escolhidos seja plausível 
+ou provável.
+
+- Para avaliar a questão estatisticamente, devemos analisar se esse 
+resultado de seleção seria improvável, se não houvesse discriminação 
+contra as mulheres, ou seja, se a alegação da empresa fosse verdadeira.
+
+- Teste a alegação das mulheres.
+
+
+
+
+## Solução do Exercício 1
+
+### Há Evidência de discriminação?
+
+#### Formulação das Hipóteses
+
+- As hipóteses do teste são:
+
+$$
+\begin{cases}
+H_0: p = 0.40 \\
+H_A: p > 0.40
+\end{cases}
+$$
+
+#### Solucão em R
+
+```{r style="font-size: 1em;"}
+n <- 10     # número total de funcionários selecionados
+x <- 9      # número de homens selecionados
+p0 <- 0.40  # proporção populacional sob a hipótese nula
+
+# Teste de proporção
+prop.test(x, n, p = p0, alternative = "two.sided", conf.level = 0.95)
+```
+
+#### Conclusão
+
+Como o valor-p é 0,002 e o nível de significância fixado foi 0,05, os 
+dados fornecem evidência suficiente para rejeitar a hipótese nula. Isto é,
+podemos concluir que a alegação da empresa de que não há discriminação 
+contra as mulheres na seleção de funcionários para a participação em 
+programas de treinamento em gestão não é suportada pelos dados da 
+amostra (valor-p = 0,002 < 0,05).
+
+
+
+
+# Tamanho de Efeito 
+
+## Exercício 2
+
+
+## Teste de hipótese entre duas médias
+
+Um estudo experimental [@barber2001] analisou o retorno mensal obtido por dois 
+grupos de participantes, classificados com base em um questionário de 
+autoconfiança financeira:
+
+- Grupo controle (sem excesso de confiança): 120 observações com retorno médio populacional de 0,9% ao mês; desvio padrão de 0,35%
+
+- Grupo com excesso de confiança: 120 observações com retorno médio 
+populacional de 0,3% ao mês; desvio padrão de 0,38%
+
+- Simulando os retornos obtidos pelos grupos:
+
+```{r}
+# fixa a semente para reprodutibilidade
+set.seed(42)
+
+# Simula os retornos mensais para os dois grupos
+sem_excesso <- rnorm(120, mean = 0.009, sd = 0.0035)
+com_excesso <- rnorm(120, mean = 0.003, sd = 0.0038)
+```
+
+#### Questões:
+
+1. Formule as **hipóteses nula e alternativa** para comparar as 
+médias dos dois grupos.
+
+2. Realize um **teste t para duas amostras independentes** assumindo 
+variâncias diferentes. Apresente o valor-p, a estatística t e o intervalo 
+de confiança da diferença de médias.
+
+3. Calcule a diferença média pontual e interprete-a em termos mensais 
+e anualizados.
+
+4. O resultado é estatisticamente significativo ao nível de 5%?
+
+5. A diferença observada é economicamente relevante?
+
+6. Calcule e interprete o tamanho do efeito (d de Cohen) com base na 
+diferença de médias padronizada.
+
+
+
+
+## Solução do Exercício 2
+
+#### 1. Hipóteses
+
+Sendo $\mu_1$ os retornos médios do grupo com excesso de confiança e 
+$\mu_2$ os retornos médios do grupo sem excesso de confiança, 
+as hipóteses são:
+
+$$
+\begin{cases}
+H_0 : \mu_1 = \mu_2  \\
+H_A : \mu_1 \neq \mu_2 
+\end{cases}
+$$
+
+
+#### 2. Teste t de Student (Welch)
+
+```{r}
+resultado_t <- t.test(com_excesso, sem_excesso)
+resultado_t
+```
+
+- Estatística t de este $\approx$  –14.4
+- Valor-p $\approx$  0,00
+- Intervalo de confiança 95% para a diferença: [–0,0074, –0,0056]
+
+
+#### 3. Diferença média observada
+
+```{r}
+mean(sem_excesso) - mean(com_excesso)
+```
+
+- Diferença $\approx$ 0,00603 → 0,603 pontos percentuais ao mês
+
+- Anualizando:
+
+$$
+0,00603 \times 12 = 0,0724
+$$
+
+- 7,24 pontos percentuais ao ano
+
+#### 4. Significância estatística
+
+- Como $p \approx 0,00 < 0,05$, rejeitamos $H_0$ ao nível de 5%.
+- Há evidência estatística de que os retornos médios diferem entre os grupos.
+
+###$ 5. Relevância econômica
+
+- Uma diferença de 0,6 p.p./mês pode parecer pequena, mas acumula cerca 
+de 7,2 p.p./ano.
+
+- Esse impacto pode ser relevante em contextos de decisão financeira e alocação de portfólio.
+
+- Mesmo diferenças modestas justificam atenção quando acumuladas no tempo.
+
+#### 6. Tamanho do efeito: d de Cohen
+
+```{r}
+library(effectsize)
+
+# Calcula o d de Cohen
+cohens_d(com_excesso, sem_excesso)
+```
+
+Resultado:
+
+- $d = -1,86$
+- IC 95% para $d$ = [–0,57, –0,06]
+
+#### Interpretação:
+
+- O valor absoluto $|d| = 1,86$ caracteriza um **efeito grande**, 
+segundo as convenções de Cohen.
+
+- A direção negativa indica que o grupo com excesso de confiança teve desempenho inferior.
+
+- O intervalo de confiança **não inclui zero**, o que reforça a 
+evidência de diferença consistente.
+
+#### Conclusão
+
+- A diferença entre os grupos foi **estatisticamente significativa**.
+
+- O tamanho do efeito padronizado ($d = -1,86$) foi grande.
+
+- A diferença absoluta de retornos, embora modesta, é 
+economicamente relevante quando acumulada no tempo.
+
+- O exercício reforça que valor-p e tamanho do efeito devem ser analisados 
+em conjunto.
+
+
+
+
+
+
+# Poder e Tamanho da Amostra
+
+
+## Motivação
+
+- Em estudos experimentais reais, não se conhece a média e o desvio padrão 
+populacional
+
+- Por isso, utilizamos estimativas obtidas em um estudo piloto, pré-teste ou 
+estudo publicado
+
+- Vamos considerar o estudo clássico de @barber2001,
+que avaliou se investidores com excesso de confiança obtêm retornos inferiores
+
+Resumo de dados do estudo:
+
+| Grupo                  | Retorno médio amostral | Desvio padrão amostral | n |
+|------------------------|------------------------|-------------------------|---|
+| Sem excesso de confiança | 0,9% ao mês             | 3,5%                     | 120 |
+| Com excesso de confiança | 0,3% ao mês             | 3,8%                     | 120 |
+
+Nosso objetivo é usar essas estimativas para calcular o tamanho necessário 
+para replicar o estudo com 80% de poder e $\alpha = 0,05$.
+
+
+
+## Estimando o tamanho de efeito
+
+### d de Cohen estimado a partir de dados amostrais
+
+```{r}
+# Dados amostrais do estudo anterior
+m1 <- 0.009; sd1 <- 0.035
+m2 <- 0.003; sd2 <- 0.038
+
+# Cohen's d com variâncias desiguais
+s_agrupado <- sqrt((sd1^2 + sd2^2)/2)
+d_est <- (m1 - m2) / s_agrupado
+round(d_est, 3)
+```
+
+Resultado:
+
+- Estimativa de $d$ $\approx$ 0,164
+
+
+
+
+## Cálculo de n
+
+### Utilizando `pwr.t.test()` 
+
+```{r}
+# determinação de n
+pwr.t.test(d = d_est,
+           sig.level = 0.05,
+           power = 0.80,
+           type = "two.sample",
+           alternative = "two.sided")
+```
+
+Resultado:
+
+- d estimado $\approx$ 0,164
+- Tamanho necessário por grupo: $\approx$ 583 participantes
+
+Interpretação:
+
+- Para detectar um efeito semelhante ao observado no estudo anterior 
+com 80% de poder, seriam necessários 583 participantes por grupo
+
+
+### Por que precisamos de 583 pessoas por grupo?
+
+- O tamanho de efeito estimado a partir dos dados do estudo 
+original é pequeno 
+
+- Com um efeito pequeno e alta variabilidade, precisamos de uma amostra grande 
+para garantir 80% de chance de detectar esse efeito (poder = 0,80).
+
+- O estudo original usou 120 participantes por grupo, 
+o que provavelmente não fornecia poder suficiente.
+
+- Portanto, para uma replicação confiável, o cálculo adequado de tamanho 
+de amostra indica a necessidade de aproximadamente 583 pessoas por grupo.
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,692 @@
+---
+title: "Introdução à Ciência de Dados"
+subtitle: "Aula 11"
+lang: pt-BR
+author: "Emily Arantes Duque"
+format: 
+  html:
+    theme: cosmo
+    embed-resources: true
+    toc: true
+    number-sections: true
+execute:
+  message: false
+  warning: false
+  echo: true
+---
+
+<style>
+body {
+  font-size: 13pt;
+  text-align: justify;
+}
+</style>
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# Cofigurações para exibicão de números
+options(
+  digits = 5, # número de casas decimais
+  scipen = 999 # desativa notação científica
+)
+
+# carrega pacotes
+library(pracma)   # para fzero
+library(Deriv)    # para derivadas simbólicas
+library(numDeriv) # para derivadas numéricas
+```
+
+
+
+# Funções Matemáticas em R 
+
+## Criando Funções Matemáticas Simples em R 
+
+- Função Linear
+
+$$
+f(x) = 2x + 1, \quad x \in \mathbb{R}
+$$
+
+```{r}
+# cria uma função linear
+funcao_linear <- function(x) {
+  return(2*x + 1)
+}
+
+# calculo de f(2)
+funcao_linear(2)
+```
+
+
+## Função Quadrática
+
+$$
+f(x) = -x^2 + x + 2, \quad x \in \mathbb{R}
+$$
+
+```{r}
+# cria uma função quadrática
+funcao_quadratica <- function(x) {
+  return(-x^2 + x + 2)
+}
+
+# calculo de f(2)
+funcao_quadratica(2)
+```
+
+
+
+
+## Função Cúbica
+
+$$
+f(x) = x^3 - 2x - 5, \quad x \in \mathbb{R}
+$$
+
+```{r}
+# cria uma função cúbica
+funcao_cubica <- function(x) {
+  return(x^3 - 2*x - 5)
+}
+
+# calculo de f(2)
+funcao_cubica(2)
+```
+
+
+
+## Função Exponencial
+
+$$
+f(x) = e^{3x}, \quad x \in \mathbb{R}
+$$
+
+```{r}
+# cria uma função exponencial
+funcao_exponencial <- function(x) {
+  return(exp(3*x))
+}
+
+# calculo de f(2)
+funcao_exponencial(2)
+```
+
+
+
+
+## Função Logaritmo
+
+$$
+f(x) = \ln(x), \quad x \in (0, \infty)
+$$
+
+```{r}
+# cria uma função logaritmo
+funcao_logaritmo <- function(x) {
+  return(log(x))
+}
+
+# calculo de f(2)
+funcao_logaritmo(2)
+```
+
+
+
+
+# Gráficos de Funções Matemáticas em R
+
+## Função curve() 
+
+A função `curve()` de R permite que você crie gráficos de funções 
+matemáticas de forma simples.
+
+
+## Gráfico: Função Linear
+
+$$
+f(x) = 2x + 1
+$$
+
+```{r}
+curve(funcao_linear, 
+      from = -2, 
+      to = 2, 
+      ylab = "f(x)", 
+      main = "Função Linear: f(x) = 2x + 1"
+      )
+abline(h = 0)
+abline(v = 0)
+```
+
+
+
+## Gráfico: Função Quadrática 
+
+$$
+f(x) = x^2 - x - 2
+$$
+
+```{r}
+curve(funcao_quadratica, 
+      from = -3, 
+      to = 3, 
+      ylab = "f(x)", 
+      main = "Função Quadrática: f(x) = x^2 - x - 2"
+      )
+abline(h = 0)
+abline(v = 0)
+```
+
+
+
+## Gráfico: Função Cubica
+
+$$
+f(x) = x^3 - 2x - 5
+$$
+
+```{r}
+curve(funcao_cubica, 
+      from = -3, 
+      to = 3, 
+      ylab = "f(x)", 
+      main = "Função Cúbica: f(x) = x^3 - 2x - 5"
+      )
+abline(h = 0)
+abline(v = 0)
+```
+
+
+
+## Gráfico: Função Exponencial
+
+$$
+f(x) = e^{3x}
+$$
+
+```{r}
+curve(funcao_exponencial, 
+      from = -1, 
+      to = 1, 
+      ylab = "f(x)", 
+      main = "Função Exponencial: f(x) = exp(x)"
+     )
+abline(h = 0)
+abline(v = 0)
+```
+
+
+
+## Gráfico: Função Logaritmica
+
+
+$$
+f(x) = \ln(x) \quad (x > 0) 
+$$
+
+```{r}
+curve(funcao_logaritmo, 
+      from = 0.1, 
+      to = 10, 
+      ylab = "f(x)", 
+      main = "Função Logaritmica: f(x) = ln(x)"
+     ) 
+abline(h = 0)
+abline(v = 0)
+```
+
+
+
+
+
+# Raízes de Funções Matemáticas em R
+
+## Função uniroot de R Base
+
+A função `uniroot` da base R encontra raízes de funções contínuas 
+reais de uma variável, utilizando o **método da bisseção**.
+
+- Raiz de uma Função Cúbica
+
+```{r}
+# Definindo a função cúbica
+cubica <- function(x) {
+  x^3 - 2*x - 5
+}
+
+# Encontrando uma raiz no intervalo [2, 3]
+uniroot(cubica, interval = c(2, 3))
+```
+
+
+
+
+## Função fzero do Pacote pracma 
+
+A função `fzero` do pacote pracma encontra as raízes de funções 
+contínuas de funções de uma variável 
+
+Raíz de uma Função Cúbica:
+
+```{r}
+# Definindo a função quadrática
+fcubica <- function(x) {
+  return(x^3 - 2*x - 5)
+}
+
+# Encontrando uma raiz no intervalo [2, 3]
+fzero(fcubica, c(2, 3))
+
+#Pode ser feito com fzero(fcubica, (2))
+```
+
+
+
+
+## Pacote Deriv para Derivadas Simbólicas
+
+```{r}
+# primeira derivada de uma função quadrática
+primeira_derivada <- Deriv(~ 3*x^2, "x")
+primeira_derivada
+```
+
+
+
+
+## Pacote Deriv para Derivadas Simbólicas
+
+- Encontrando a primeira derivada de $fx) = x^2 - 4*x + 4$
+
+```{r}
+# primeira derivada de uma função quadrática
+primeira_derivada <- Deriv(~ x^2 - 4 * x + 4, "x")
+primeira_derivada
+```
+
+
+
+
+## Pacote numDeriv para Derivadas Numéricas
+
+Vimos que a primeira derivada de $f(x) = 3x^2$ é $f^{'}(x) = 6x$.
+
+
+Qual o valor de $f^{'}(2)$? 
+
+$$
+f^{'}(2) = 6 \times 2 = 12
+$$
+
+
+```{r}
+# define a função quadrática
+funcao <- function (x) {return(3*x^2)}
+
+# Derivada numérica da função quadrática
+primeira_derivada_numerica <- grad(funcao, x = 2)
+primeira_derivada_numerica
+```
+
+
+
+## Derivada Segunda com o Pacote Deriv
+
+```{r}
+# define a função
+f <- function(x) {3*x^2}
+
+# primeira derivada
+derivada_primeira <- Deriv(f)
+
+# segunda derivada
+derivada_segunda <- Deriv(derivada_primeira)
+derivada_segunda
+```
+
+
+Derivada Segunda - Exemplo
+
+```{r}
+# define a função
+f <- function(x) {x^2 - 4*x + 4}
+
+# primeira derivada
+derivada_primeira <- Deriv(f)
+
+# segunda derivada
+derivada_segunda <- Deriv(derivada_primeira)
+derivada_segunda
+```
+
+
+
+
+## Derivada Segunda com numDeriv
+
+Vamos calcular numericamente a derivada segunda de  $f(x) = 3x^2$ no 
+ponto $x = 2$.
+
+Lembrando:
+
+$$
+f''(x) = 6
+$$
+
+```{r}
+library(numDeriv)
+
+# função original
+f <- function(x) {3*x^2}
+
+# derivada segunda usando função hessian
+segunda_derivada_numerica <- hessian(f, x = 2)
+segunda_derivada_numerica
+```
+
+
+
+# Encontrando Máximos ou Mínimos de Funções
+
+## Função `optimize()` em R
+
+### Como encontrar o **máximo** de uma função?
+
+A função `optimize()` do R é projetada para **minimizar** funções reais de uma variável.
+
+Para **maximizar** uma função $f(x)$, usamos a equivalência:
+
+$$
+\max f(x) = \min [-f(x)]
+$$
+
+Ou seja, maximizamos $f(x)$ minimizando $-f(x)$.
+
+Vamos aplicar isso à função:
+
+$$
+f(x) = -x^2 + x + 2
+$$
+
+```{r}
+# Define a função original
+f <- function(x) {-x^2 + x + 2}
+
+# Maximização via minimização de -f(x)
+resultado <- optimize(function(x) -f(x), interval = c(-1, 2))
+
+# Recupera os resultados
+x_max <- resultado$minimum            # ponto de máximo
+f_max <- -resultado$objective         # (-1)xf(x_max)
+
+# Exibe os resultados
+list(x_max = x_max, f_max = f_max)
+```
+
+
+**Resumo**: 
+
+- `optimize()` encontra o ponto que **minimiza** a função 
+fornecida.
+
+- Para obter um **máximo**, forneça $-f(x)$ e depois 
+**inverta o sinal** do resultado para $f(x)$
+
+**Resultado final**:
+
+- A função $f(x) = -x^2 + x + 2$ atinge seu **máximo** em $x = 0,5$.
+
+- O valor da função no ponto de máximo é:
+
+$$
+f(0{,}5) = 2,25
+$$
+
+
+
+
+## Exercício 1
+
+Utilizando a criação de funções matemáticas e a função `curve`, crie 
+os gráficos das seguintes funcões:
+
+a. A função de demanda linear é definida como: $f(x) = 50 - 2x$
+onde $x$ é a quantidade demandada e $f(x)$ é o preço.
+
+```{r}
+funcao_linear_demanda <- function(x) {
+  return(50 - 2*x)
+}
+
+curve(funcao_linear_demanda, 
+      from = 0, 
+      to = 25, 
+      ylab = "f(x)", 
+      main = "Função Linear Demanda: f(x) = 50 - 2x"
+      )
+abline(h = 0)
+abline(v = 0)
+
+```
+
+
+
+
+b. A função de utilidade Cobb-Douglas é definida como:
+$f(x) = 10x^{0.5}$, onde $x$ é a quantidade de um 
+bem e $f(x)$ é a utilidade.
+
+```{r}
+funcao_quadratica_cobb <- function(x) {
+  return(10*x^0.5)
+}
+
+curve(funcao_quadratica_cobb, 
+      from = 0, 
+      to = 20, 
+      ylab = "f(x)", 
+      main = "Função Quadrática Cobb-Douglas: f(x) = 10x^{0.5}"
+      )
+abline(h = 0)
+abline(v = 0)
+  
+```
+
+
+
+c. A função de crescimento logístico é definida como:
+$f(x) = \frac{100}{1 + e^{-0.1(x - 50)}}$
+onde $x$ é o tempo.
+
+```{r}
+funcao_exponencial_logistico <- function(x) {
+  return(100/(1+exp(-0.1*(x-50))))
+}
+
+curve(funcao_exponencial_logistico, 
+      from = 0, 
+      to = 100, 
+      ylab = "f(x)", 
+      main = "Função Exponencial: f(x) = frac{100}{1 + e^{-0.1(x - 50)}}"
+     )
+abline(h = 0)
+abline(v = 0)
+
+```
+
+
+
+## Exercício 2
+
+Utilizando a função `optimize` da linguagem R. 
+Encontre o valor de $x$ que maximiza a seguinte 
+função quadrática:
+
+$$
+f(x) = -2x^2 + 4x + 1
+$$
+```{r}
+funcao_quadratica_2 <- function(x) {
+  return(-2*x^2 + 4*x + 1)
+}
+
+curve(funcao_quadratica_2, 
+      from = -5, 
+      to = 5, 
+      ylab = "f(x)", 
+      main = "Função Quadrática Exercício 2: f(x) = -2x^2 + 4x +1"
+      )
+abline(h = 0)
+abline(v = 0)
+```
+
+```{r}
+# Maximização via minimização de -f(x)
+resultado <- optimize(function(x) -funcao_quadratica_2(x), interval = c(0, 2))
+
+# Recupera os resultados
+x_max <- resultado$minimum            # ponto de máximo
+f_max <- -resultado$objective         # (-1)xf(x_max)
+
+# Exibe os resultados
+list(x_max = x_max, f_max = f_max)
+```
+
+
+
+
+## Propriedades dos EMV via Simulação de MC 
+
+```{r}
+# fixando a média e o desvio-padrão de uma VA normal padronizada
+mu <- 0
+sigma <- 1
+
+# n é tamanho de cada amostra. 
+# T é o número de simulacoes de cada amostra
+
+n0 <- 10 
+n1 <- 100
+n2 <- 1000
+n3 <- 10000
+T <- 1000
+```
+
+```{r}
+# fixa a semente do gerador de numeros aleatorios
+set.seed(999)
+
+# simula 1000 amostras (linhas) de tamanho 10 (colunas)
+amostras0 <- rnorm(n0 * T, mu, sigma)
+amostras0 <- matrix(amostras0, nrow = T, ncol = n0)
+dim(amostras0)
+
+# simula 1000 amostras de tamanho 100
+amostras1 <- rnorm(n1 * T, mu, sigma)
+amostras1 <- matrix(amostras1, nrow = T, ncol = n1)
+dim(amostras1) # dim retorna n. de linhas x n. de colunas
+
+# simula 1000 amostras de tamanho 1000
+amostras2 <- rnorm(n2 * T, mu, sigma)
+amostras2 <- matrix(amostras2, nrow = T, ncol = n2)
+dim(amostras2)
+```
+
+
+```{r}
+# simula 1000 amostras de tamanho 10000
+amostras3 <- rnorm(n3 * T, mu, sigma)
+amostras3 <- matrix(amostras3, nrow = T, ncol = n3)
+dim(amostras3)
+```
+
+
+```{r}
+##os EMV são:
+
+# 1000 médias calculadas de 1000 amostras de tamanho 10
+xbar0 <- apply(amostras0, 1, mean)
+dim(xbar0)
+
+# 1000 médias calculadas de 1000 amostras de tamanho 100
+xbar1 <- apply(amostras1, 1, mean)
+dim(xbar1)
+
+# 1000 médias calculadas de 1000 amostras de tamanho 1000
+xbar2 <- apply(amostras2, 1, mean)
+dim(xbar2)
+
+# 1000 médias calculadas de 10000 amostras de tamanho 10000
+xbar3 <- apply(amostras3, 1, mean)
+dim(xbar3)
+```
+
+
+```
+## mostra a normalidade assintótica
+hist(xbar0)
+hist(xbar1)
+hist(xbar2)
+hist(xbar3)
+```
+
+```{r}
+# calcula o viés dos EMV
+vies0 = xbar0 - mu
+vies1 = xbar1 - mu
+vies2 = xbar2 - mu
+vies3 = xbar3 - mu
+```
+
+```{r}
+# viés médio 
+mean(vies0)
+mean(vies1)
+mean(vies2)
+mean(vies3)
+```
+
+
+
+
+
+
+## Exercício 2
+
+### EMV de $p$ em uma Distribuição Binomial
+
+Considere um experimento binomial com:
+
+- Número de ensaios: $n$
+- Probabilidade de sucesso: $\theta$
+- Número de sucessos: $x$
+
+A função de probabilidade da distribuição binomial é:
+
+$$
+P(X = x) = \binom{n}{x} p^x (1 - p)^{n - x}
+$$
+
+Sabemos que $n$ é conhecido, mas $p$ é **desconhecido**. 
+Seu objetivo é encontrar uma **estimativa de Máxima Verossimilhança (EMV)** 
+de $p$.
+
+#### Dados
+
+Suponha que, em 10 experimentos binomiais independentes com 
+$n = 5$ tentativas cada, observamos os seguintes números de sucessos:
+
+```{r}
+dados <- c(3, 2, 4, 3, 2, 5, 1, 2, 3, 4)
+```
+
+
+
+
+
+
+
