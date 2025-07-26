@@ -1,0 +1,168 @@
+---
+title: "Reslução da Avaliação 3"
+subtitle: "Introdução à Ciência de Dados - 2025 <br> Mestrado em Administração"
+author: "Emily Arantes Duque"
+title-block-banner: "#27445C"
+format:
+  html:
+    theme: flatly
+    embed-resources: true
+    page-layout: article
+    toc: true
+    toc-location: left
+lang: pt-BR
+date: 2025-07-24
+date-format: long
+---
+
+
+```{r}
+#| label: setup
+#| echo: false
+
+# Cofigurações para exibicão de números
+options(
+  digits = 5, # número de casas decimais
+  scipen = 9999 # desativa notação científica
+)
+
+# carrega pacotes
+library(effectsize) # para medidas de tamaho do efeito
+library(pwr)        # para estimativas de poder estatístico
+```
+
+
+
+## Questão 1 
+
+[ ] Opção 1  
+[ ] Opção 2  
+[ ] Opção 3  
+[X] Opção 4
+
+
+**Justificativa:**
+
+Por se tratar da verificação de diferença de proporções, a hipótese alternativa
+deve refletir o interesse da pesquisa que é verificar se existe diferença real
+entre as proporções de investidores iniciantes e experientes. Já a hipótese nula
+assume que não existe diferença entre os grupos quanto à tomada de decisões 
+impulsivas.
+
+
+**b.** 
+
+
+```{r}
+prop.test(x = c(60, 45),
+          n = c(100, 100),
+          alternative = "two.sided",
+          conf.level = 0.95,
+          correct = FALSE)
+```
+
+
+
+
+**c.** 
+
+
+```{r}
+# Proporções
+p1 <- 0.45
+p2 <- 0.60
+
+# Diferença padronizada
+h <- ES.h(p1, p2)
+h
+
+interpret_cohens_d(abs(h), rules = "cohen1988")
+
+
+```
+
+A diferença padronizada entre as duas proporções, calculada segundo a proposta 
+de Cohen (1988) foi de aproximadamente 0,30 em valor absoluto. Este valor quando
+interpretado pelas regras clássicas de Cohen, indica um tamanho de efeito 
+considerado pequeno a médio.
+
+
+
+**d.** 
+
+Considerando os resultados obtidos, a análise apresentou uma diferença 
+siginificativa estatisticamente entre as proporções de investidores iniciantes 
+e experientes que tomam decisões financeiras impulsivas.O intervalo de confiança 
+de 95% para a diferença entre as proporções ($P_B − P_A$) não inclui zero, 
+sugerindo que a proporção de investidores iniciantes que agem por impulso é 
+maior do que a de investidores experientes.
+
+Além disso, o cálculo do tamanho do efeito, segundo a proposta de Cohen (1988),
+apresentou um valor de aproximadamente 0,30, o que corresponde a um efeito 
+pequeno a médio, sugerindo que o nível de experiência influencia o comportamento 
+impulsivo, mas não é o único fator determinante. Considerando que a diferença seja 
+estatisticamente significativa, sua relevância prática é moderada.
+
+Portanto, podemos conlcuir que investidores iniciantes tendem a apresentar uma 
+propensão um pouco maior para decisões impulsivas em comparação aos
+experientes, mas a magnitude dessa diferença não é elevada. Este resultado 
+reforça a importância de considerar outros fatores psicológicos, comportamentais
+e contextuais ao analisar o comportamento financeiro.
+
+
+
+
+**e.** 
+
+Considerando um nível de significância de 5% ($\alpha = 0{,}05$), o valor-p 
+obtido (0,038) é menor que $\alpha$.
+Portanto, rejeitamos a hipótese nula de que as proporções de decisões impulsivas
+são iguais nos dois grupos.
+Concluímos que há evidências estatísticas de que a proporção de decisões 
+financeiras impulsivas diferem significativamente entre investidores iniciantes
+e experientes. Em termos práticos, a proporção de decisões impulsivas é maior 
+entre os investidores iniciantes, reforçando que o nível de experiência exerce 
+influência sobre esse comportamento.
+
+
+
+
+**f.** 
+
+A estimativa por intervalo de confiança é mais informativa, pois, além de 
+indicar se existe ou não diferença, ela  fornece uma faixa de valores plausíveis
+para o parâmetro populacional, permitindo avaliar a magnitude e a precisão da 
+estimativa. Já o teste de hipóteses limita-se a um resultado binário (rejeitar 
+ou não rejeitar  a hipótese nula), sem mostrar a dimensão do efeito. 
+Por isso, o intervalo de confiançacontribui tanto para a significância 
+estatística quanto para a interpretação prática dos resultados.
+
+
+
+**g.**
+
+
+
+```{r}
+
+# Cálculo do poder
+pwr.2p2n.test(h, 
+              n1 = 100, 
+              n2 = 100, 
+              sig.level = 0.05, 
+              alternative = c("two.sided", "less", "greater"))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

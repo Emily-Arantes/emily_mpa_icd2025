@@ -2,7 +2,7 @@
 title: "Introdução à Ciência de Dados"
 subtitle: "Aula 14"
 lang: pt-BR
-author: "Seu Nome"
+author: "Emily Arantes Duque"
 format: 
   html:
     theme: flatly

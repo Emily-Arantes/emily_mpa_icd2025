@@ -1,0 +1,171 @@
+---
+title: "Reslução da Avaliação 2"
+subtitle: "Introdução à Ciência de Dados - 2025 <br> Mestrado em Administração"
+author: "Emily Arantes Duque"
+title-block-banner: "#27445C"
+format:
+  html:
+    theme: flatly
+    embed-resources: true
+    page-layout: article
+    toc: true
+    toc-location: left
+lang: pt-BR
+date: 2025-07-24
+date-format: long
+bibliography: referencias.bib
+csl: associacao-brasileira-de-normas-tecnicas-ipea.csl
+---
+
+
+
+
+## Resposta da Questão 1 
+
+a) O doutorando em psicologia Matt Motyl estav realizando um estudo e 
+inicalmente obteve um P-valor de 0.01, o que confirmava sua hipótese sobre a 
+visão dos extremistas em relação aos moderados.Este P-valor era considerado 
+"muito significativo", apontando uma forte evidência para sua hipótese. Porém, 
+Motyl e seu orientador, eram sensíveis a controvérsias e decidiram replicar o 
+estudo, assim o P-valor resultante foi de 0.59, valor distantedo nível 
+convencional de sigiinicância de 0.05.
+O espisódio ilustra a "natureza escorregadia" dos P-valores porque,como 
+@nuzzo2014 explica, o problema não estava nos dados e nem na análise feita por 
+Motyl, mas sim porque o valor-P não é tão confiável e objetivo como a maioria 
+dos cientistas assume. O estatístico Ronald Fisher introduziu o valor-P não 
+ser um teste definitivo e sim uma forma de julgar se a evidência era 
+significativa no sentido de precisar ser verificada novamente.
+
+b)
+
+Reprodutibilidade e Robustez de Resultados:
+
+É importante destacar a replicação, visto que considerando o caso de Motyl, 
+apresentado no artigo, verifica-se a necessidade crítica de replicar estudos, 
+principalmente quando o resultado é muito surpreendente. A replicação é uma 
+ferramenta de teste para confirmar se a descoberta é real ou uma hipótese falsa.
+Outro ponto a ser destacado são os resultados significativos, os quais podem ser
+falsos alarmes, sendo que os pesquisadores devem estar atentos ao interpretar o
+P-valor pequenos, visto que eles não siginificam que há uma chance parecida de
+ser uma hipótese falsa.
+
+
+Interpretação Correta do Valor-p:
+
+
+O valor-P não pode ser interpretado comoa probabilidade da hipótese nula ser 
+verdadeira ou falsa, ele apenas resume se os dados são observados assumindo uma
+hipótese nula como verdadeira.
+
+Devemos destacar também que o valor-P não indica relevância prática do efeito,
+ele não consegue informar sobre a real dimensão do resultado. Para ser mais 
+assertivo, um pesquisador deve considerar o tamanho do esfeito e os intervalos
+de confiança. Limitar-se apenas ao valor-P pode incentivar a certeza da 
+significância, mas não a relavância prática.
+
+
+## Resposta da Questão 2 
+
+
+a) O predomínio de valores-P pode proporcionar muitos "falsos positivos" porque 
+os pesquisadores procuram validação para seus estudos, sendo pressionados a
+apresentar resultados "siginificativos", fazendo com que eles realizem diversos
+testes estatíticos até encontrar um que produza um P-valor considerável. O maior
+problema disso é que muitas vezes esses testes não são colocados no artigo, 
+passando a imagem que apenas um teste foi capaz de produzir o resultado esperado
+e tão siginificativo. Além disso, existe um grande incentivo editorial para a 
+publicação de resultados considerados "siginificativos" pela estatística, criando
+uma pressão pela busca de P-valores baixos.
+
+
+
+b) O P-hacking pode ser definido como a prática de manipular a análise de dados 
+para obter um valor-P considerado significativo estatisticamente (menor que 0.05)
+ajustando a metodologia e a apresentação dos resultados.
+
+
+Duas Práticas Concretas de P-hacking identificadas por Harvey:
+
+Uma das práticas identificadas é a exclusão arbitrária de variáveis ou observações
+que não contribuem para o resultado esperado do valor-P. Também é identificado
+que os pesquisadores podem estimar o mesmo modelo de diversas maneiras e registrar
+apenas aquela que produziu o valor-P mais baixo. Essa busca por resultados 
+significativos aumenta a chance de um falso postivo, pois o número real de testes
+não é apresentado.
+
+
+
+## Resposta da Questão 3 
+
+a) O valor P apresenta a probabilidade de observar um valor estatítico igual ou
+mais extremo do que o observado mediante a hipótese nula ser verdadeira.
+
+O papel tradicional da "significância estatística" é utilizada como um 
+determinantese um resultado é importante ou digno de nota, visto que cada 
+quantidade de estrela apresenta um nível diferente). Estimativas com frequências 
+são vistas como melhores (superiores) que as demais. Porém, @imbens2021 
+argumenta que esse foco nem sempre responde a pergunta substantiva central em
+pesquisas econômicas porque a pergunta central que deve ser feita por um economista
+geralmente não é se um coeficiente é siginificativamente diferente de zero, mas
+sim qual a magnitude do efeito e a incerteza que o envolve. O valor P não diz 
+nada sobre a relavância prática ou econômica do efeito.
+
+
+
+b) O autor levanta 3 preocupações acerca do uso do valor-P, sendo a primeira 
+relacionada a distorção do foco da magnitude e da incerteza das estimativas para
+a simples definição de "significativo ou não siginificativo" (buscam um resultado
+ideal). A segunda preocupação é a facilitação do P-hacking e os testes não 
+registrados, visto que a busca pela signicância estatística faz com que os 
+pesquisadores testem vários modelos até encontrar um valor-P "publicável", o que
+aumenta os falsos positivos e impede a reprodutibilidade. A terceira preocupação
+é o viés da publicação, que apresenta um grande favorecimento de publicações
+de resultados significativos estatisticamente., sendo que os estudos com 
+resultados nulos ou não siginificativos são deixados de lado.
+
+
+c) Para melhorar a interpretação e a apresentação de resultados de estimação:
+
+É recomendado que os pesquisadores tenham como foco a apresentação de intervalos
+de confiança para as magnitudes dos efeitos estimados, sendo fornecido uma
+faixa de valores para o parâmetro real, comunicando a incerteza da estimatiava.
+Além disso, deve ser utilizado gráficos e outros tipos de vizualizações para
+apresentar os resultados, comunicando e forma mais eficaz a distribuição das 
+estimativas e a precisão da inferência.
+
+
+Para reduzir incentivos ao p-hacking e ao viés de publicação:
+
+O autor é um defensor do pré-registro de planos de análise antes da coleta ou 
+análise dos dados, forçando os pesquisadores a especificar suas hipóteses, 
+variáveis e métodosde análise, reduzindo o P-hacking. Também sugere que os 
+periódicos o processo de revisão se concentrem mais na qualidade do desenho do
+estudo e da metodologia e deixem foquem menos na siginificância dos resultados, 
+reduzindo o viés da publicação.
+
+
+d) Um plano de análise pré-registrado é um documento detalhado que especifica as
+hipóteses de pesquisa, o desenho do estudo, as variáveis que serão utilizadas , 
+o tamanho da amostra  e os métodos de análise estatística que serão aplicados, 
+antes que qualquer dado seja coletado ou analisado.
+
+Principal motivo para sua adoção, segundo o artigo:
+O principal motivo para a adoção do pré-registro é reduzir o P-hacking e 
+por consequência, aumentar a credibilidade e a reprodutibilidade da pesquisa. 
+
+
+## Referências
+
+::: {#refs}
+:::
+
+
+
+
+
+
+
+
+
+
+
